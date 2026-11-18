@@ -232,6 +232,13 @@ button, input, select, a { touch-action: manipulation; }
 <body class="antialiased">
 <div id="app">
 
+  <!-- ================= BANNER OFFLINE & TOASTS (TALMIDDEV) ================= -->
+  <div id="offlineBanner" class="hidden bg-amber-500 text-slate-950 font-bold text-[10px] py-1 px-3 text-center fixed top-0 inset-x-0 z-[100] shadow-md flex items-center justify-center gap-1.5">
+    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+    <span>Modo Offline: Operando com dados locais em cache (TalmidDev)</span>
+  </div>
+  <div id="toastContainer" class="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none max-w-xs"></div>
+
   <!-- ================= TOP HEADER FIXO ================= -->
   <header class="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-3">
     <div class="flex items-center justify-between">
@@ -251,16 +258,19 @@ button, input, select, a { touch-action: manipulation; }
       </div>
 
       <div class="flex items-center gap-1.5">
-        <button onclick="openAeroAIModal()" class="flex items-center gap-1 text-[11px] font-bold bg-gradient-to-r from-cyan-950 to-blue-950 border border-cyan-400/60 text-cyan-300 px-2 py-1.5 rounded-lg active:scale-95 transition shadow-sm animate-pulse">
-          <span>🤖 Copiloto IA</span>
+        <button onclick="openAeroAIModal()" class="flex items-center gap-1.5 text-[11px] font-bold bg-gradient-to-r from-cyan-950 to-blue-950 border border-cyan-400/60 text-cyan-300 px-2.5 py-1.5 rounded-lg active:scale-95 transition shadow-sm animate-pulse">
+          <svg class="w-3.5 h-3.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M12 8V4H8"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+          <span>Copiloto IA</span>
         </button>
-        <button onclick="openRetaModal()" class="flex items-center gap-1 text-[11px] font-semibold bg-cyan-950/80 border border-cyan-800 text-cyan-300 px-2 py-1.5 rounded-lg active:scale-95 transition">
-          <span>🛡️ RETA</span>
+        <button onclick="openRetaModal()" class="flex items-center gap-1.5 text-[11px] font-semibold bg-cyan-950/80 border border-cyan-800 text-cyan-300 px-2.5 py-1.5 rounded-lg active:scale-95 transition">
+          <svg class="w-3.5 h-3.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>RETA</span>
         </button>
-        <button onclick="shareInviteWhatsApp()" class="flex items-center gap-1 text-[11px] font-semibold bg-emerald-950 border border-emerald-800 text-emerald-300 px-2 py-1.5 rounded-lg active:scale-95 transition">
-          <span>📲 Convidar</span>
+        <button onclick="shareInviteWhatsApp()" class="flex items-center gap-1.5 text-[11px] font-semibold bg-emerald-950 border border-emerald-800 text-emerald-300 px-2.5 py-1.5 rounded-lg active:scale-95 transition">
+          <svg class="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span>Convidar</span>
         </button>
-        <button onclick="toggleMapModal()" class="flex items-center gap-1 text-[11px] font-medium bg-slate-900 border border-slate-800 text-slate-300 px-2 py-1.5 rounded-lg active:scale-95 transition">
+        <button onclick="toggleMapModal()" class="flex items-center gap-1.5 text-[11px] font-medium bg-slate-900 border border-slate-800 text-slate-300 px-2.5 py-1.5 rounded-lg active:scale-95 transition">
           <svg width="13" height="13" fill="none" stroke="#06b6d4" stroke-width="2" viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
           <span>Mapa</span>
         </button>
@@ -280,7 +290,7 @@ button, input, select, a { touch-action: manipulation; }
       <div class="bg-gradient-to-r from-cyan-950/80 via-slate-900 to-emerald-950/80 border border-cyan-500/30 rounded-2xl p-3 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-400 font-bold text-sm">
-            🛡️
+            <svg class="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
           </div>
           <div>
             <div class="flex items-center gap-1.5">
@@ -354,18 +364,72 @@ button, input, select, a { touch-action: manipulation; }
           </select>
         </div>
 
-        <!-- Carrossel de Categorias — Scroll Horizontal com Touch Nativo -->
+        <!-- Carrossel de Categorias — 16 Modalidades Técnicas Homologadas (TalmidDev) -->
         <div class="chips-scroll" id="categoryChips">
-          <button class="category-chip active" onclick="selectCategory('TODAS', this)">⚡ Todas</button>
-          <button class="category-chip" onclick="selectCategory('Câmera 360° & Tour Virtual', this)">🔄 Câmera 360°</button>
-          <button class="category-chip" onclick="selectCategory('Timelapse de Obras', this)">⏱️ Timelapse</button>
-          <button class="category-chip" onclick="selectCategory('Topografia & LiDAR', this)">📐 Topo & LiDAR</button>
-          <button class="category-chip" onclick="selectCategory('Inspeção Eólica & Solar', this)">⚡ Eólica & Solar</button>
-          <button class="category-chip" onclick="selectCategory('Termografia Industrial', this)">🌡️ Termografia</button>
-          <button class="category-chip" onclick="selectCategory('Construção & BIM', this)">🏗️ Obras & BIM</button>
-          <button class="category-chip" onclick="selectCategory('Transmissão ao Vivo', this)">📡 Live Stream</button>
-          <button class="category-chip" onclick="selectCategory('Pulverização Agrícola', this)">🌾 Agro & Pulverização</button>
-          <button class="category-chip" onclick="selectCategory('Drone FPV & Audiovisual', this)">🎬 FPV & Cinema</button>
+          <button class="category-chip active flex items-center gap-1.5" onclick="selectCategory('TODAS', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+            <span>Todas (16)</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Topografia & LiDAR', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
+            <span>Topografia & LiDAR</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Câmera 360° & Tour Virtual', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span>Câmera 360°</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Timelapse de Obras', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Timelapse Obras</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Inspeção Eólica & Solar', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+            <span>Eólica & Solar</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Termografia Industrial', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+            <span>Termografia</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Construção & BIM', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22h20"/><path d="M17 2H7l-5 5v15h20V7l-5-5z"/></svg>
+            <span>Obras & BIM</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Transmissão ao Vivo', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
+            <span>Live Stream</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Pulverização Agrícola', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+            <span>Pulverização Agro</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Drone FPV & Audiovisual', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+            <span>FPV Cinema</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Cálculo Volumétrico', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>
+            <span>Volumetria</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Inspeção Predial', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/></svg>
+            <span>Fachadas</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Espaço Confinado', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Confinado</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Linhas de Transmissão', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>Linhas Transmissão</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('NDVI Multiespectral', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/></svg>
+            <span>NDVI Lavoura</span>
+          </button>
+          <button class="category-chip flex items-center gap-1.5" onclick="selectCategory('Cobertura de Eventos', this)">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span>Eventos</span>
+          </button>
         </div>
       </div>
 
@@ -1022,24 +1086,26 @@ button, input, select, a { touch-action: manipulation; }
     <div id="tacticalMap" class="flex-1 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl"></div>
   </div>
 
-  <!-- ================= MODAL GARANTIA PIX SEGURO / ESCROW ================= -->
+  <!-- ================= MODAL GARANTIA PIX SEGURO / ESCROW (TALMIDDEV) ================= -->
   <div id="escrowModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-3 animate-fade-in">
-    <div class="bg-slate-900 border border-cyan-500/40 rounded-2xl w-full max-w-sm p-4 space-y-3.5">
+    <div class="bg-slate-900 border border-cyan-500/40 rounded-2xl w-full max-w-sm p-4 space-y-3.5 shadow-2xl">
       <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
         <div class="flex items-center gap-2">
-          <span class="text-base">🛡️</span>
+          <div class="w-7 h-7 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-400">
+            <svg class="w-4 h-4 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
           <div>
-            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Contrato com Garantia DroneHub</h3>
-            <p class="text-[9px] text-cyan-400 font-mono">CUSTÓDIA PROTEGIDA VIA PIX</p>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Custódia Segura DroneHub (Escrow)</h3>
+            <p class="text-[9px] text-cyan-400 font-mono" id="escrowModalType">CONTRATAÇÃO DIRETA • DIÁRIA FIXA</p>
           </div>
         </div>
-        <button onclick="closeEscrowModal()" class="text-slate-400 font-bold text-sm">✕</button>
+        <button onclick="closeEscrowModal()" class="text-slate-400 hover:text-white font-bold text-sm">✕</button>
       </div>
 
       <!-- Resumo do Piloto & Missão -->
       <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5">
         <div class="flex justify-between">
-          <span class="text-slate-400">Piloto Credenciado:</span>
+          <span class="text-slate-400">Piloto Homologado:</span>
           <span class="font-bold text-white" id="escrowPilotName">Lucas Andrade</span>
         </div>
         <div class="flex justify-between">
@@ -1047,31 +1113,53 @@ button, input, select, a { touch-action: manipulation; }
           <span class="font-mono font-bold text-emerald-400" id="escrowValMission">R$ 2.200,00</span>
         </div>
         <div class="flex justify-between">
-          <span class="text-slate-400">Taxa de Custódia DroneHub:</span>
-          <span class="font-mono text-cyan-400 font-bold" id="escrowFeeText">R$ 66,00 (3%)</span>
+          <span class="text-slate-400">Taxa de Proteção & Seguro (3%):</span>
+          <span class="font-mono text-cyan-400 font-bold" id="escrowFeeText">R$ 66,00</span>
         </div>
         <div class="border-t border-slate-800 pt-1.5 flex justify-between font-bold">
-          <span class="text-white">Total Protegido em Custódia:</span>
+          <span class="text-white">Total em Custódia:</span>
           <span class="font-mono text-emerald-400 text-sm" id="escrowValTotal">R$ 2.266,00</span>
+        </div>
+      </div>
+
+      <!-- Trava de 5 Dias Úteis (Decisão Argon Doc 38) -->
+      <div class="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-800/60 text-[10px] space-y-1">
+        <div class="flex items-center gap-1.5 font-bold text-cyan-300">
+          <svg class="w-3.5 h-3.5 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>Regra de Proteção Bilateral: Trava de 5 Dias Úteis</span>
+        </div>
+        <p class="text-[9px] text-slate-300 leading-snug">
+          O valor é liberado imediatamente no clique do contratante. Para proteger o piloto contra retenções indevidas, caso não haja contestação técnica em até <b>5 dias úteis</b> após o laudo, a liberação ocorre automaticamente.
+        </p>
+      </div>
+
+      <!-- Prova Criptográfica SHA-256 do Laudo -->
+      <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-[10px] space-y-1 font-mono">
+        <div class="flex justify-between text-slate-400">
+          <span>Laudo Técnico & GSD:</span>
+          <span class="text-emerald-400 font-bold">2.1 cm/px (150ha)</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Hash SHA-256:</span>
+          <span class="text-cyan-400 font-bold" title="Hash SHA-256 do Laudo Técnico">40adf614...12127</span>
         </div>
       </div>
 
       <!-- Barra de Progresso da Garantia -->
       <div class="space-y-1">
-        <span class="text-[10px] text-slate-400 uppercase font-mono block">Status da Missão em Tempo Real:</span>
+        <span class="text-[10px] text-slate-400 uppercase font-mono block">Status em Tempo Real:</span>
         <div class="grid grid-cols-3 gap-1.5 text-center text-[9px] font-mono font-bold">
-          <div class="bg-emerald-950 text-emerald-300 border border-emerald-700 py-1 rounded" id="stepPix">1. PIX Custódia</div>
-          <div class="bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded" id="stepVoo">2. Execução Voo</div>
-          <div class="bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded" id="stepAprov">3. Aprovação Final</div>
+          <div class="bg-emerald-950 text-emerald-300 border border-emerald-700 py-1 rounded" id="stepPix">1. PIX Retido</div>
+          <div class="bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded" id="stepVoo">2. Voo & Laudo</div>
+          <div class="bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded" id="stepAprov">3. Liberação R$</div>
         </div>
       </div>
 
       <!-- QR Code PIX e Chave Copia e Cola -->
-      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center space-y-2">
-        <div class="inline-block p-2 bg-white rounded-xl shadow-md">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=00020126580014br.gov.bcb.pix0136dronehub-escrow-garantia-segura5204000053039865802BR" class="w-24 h-24" alt="QR Code PIX">
+      <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-center space-y-2">
+        <div class="inline-block p-1.5 bg-white rounded-xl shadow-md">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=00020126580014br.gov.bcb.pix0136dronehub-escrow-garantia-segura5204000053039865802BR" class="w-20 h-20" alt="QR Code PIX">
         </div>
-        <p class="text-[10px] text-slate-400">Escaneie com o app do seu banco ou use a chave abaixo:</p>
         <div class="flex gap-1.5">
           <input type="text" readonly value="pix.garantia@dronehub.com.br" id="pixKeyInput" class="w-full bg-slate-900 border border-slate-800 text-slate-300 text-[10px] font-mono rounded-lg px-2 py-1.5 text-center">
           <button onclick="copyPixKey()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95 whitespace-nowrap">
@@ -1082,7 +1170,7 @@ button, input, select, a { touch-action: manipulation; }
 
       <!-- Botão para Simular Aprovação da Entrega e Liberação -->
       <button onclick="advanceEscrowDemo()" id="btnAdvanceEscrow" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs active:scale-95 transition shadow-lg shadow-emerald-500/20">
-        Simular: Cliente Aprova Dados e Libera R$
+        Simular: Cliente Aprova Laudo e Libera R$
       </button>
     </div>
   </div>
@@ -1660,14 +1748,25 @@ function renderPilots(data) {
             <span class="text-xs font-mono font-bold text-cyan-400">R$ ${p.preco}<span class="text-[9px] text-slate-500">/dia</span></span>
           </div>
           <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-            <span>📍 ${p.cidade}, ${p.uf}</span>
+            <span class="flex items-center gap-1">
+              <svg class="w-3 h-3 text-slate-500 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${p.cidade}, ${p.uf}
+            </span>
             <span>•</span>
-            <span class="text-amber-400 font-bold">★ ${p.avaliacao}</span>
+            <span class="text-amber-400 font-bold flex items-center gap-0.5">
+              <svg class="w-3 h-3 text-amber-400 fill-amber-400 inline" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              ${p.avaliacao}
+            </span>
             <span class="text-slate-500 text-[10px]">(${p.avaliacoesTotal})</span>
           </div>
-          <div class="mt-1 flex items-center gap-1.5">
-            <span class="text-[9px] font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded font-bold">
-              ✓ ANAC ${p.anac}
+          <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+            <span class="text-[9px] font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
+              <svg class="w-2.5 h-2.5 text-emerald-400 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              ANAC ${p.anac}
+            </span>
+            <span class="text-[9px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
+              <svg class="w-2.5 h-2.5 text-cyan-400 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              RETA Válido
             </span>
           </div>
         </div>
@@ -1680,44 +1779,50 @@ function renderPilots(data) {
         `).join('')}
       </div>
 
-      <!-- Linha de Redes Sociais do Piloto (Instagram, Threads, LinkedIn, Facebook) -->
+      <!-- Linha de Redes Sociais do Piloto -->
       <div class="flex items-center gap-1.5 pt-1 border-t border-slate-800/80 text-[10px] flex-wrap">
-        <span class="text-slate-500 font-semibold text-[9px] uppercase font-mono">Redes:</span>
+        <span class="text-slate-500 font-semibold text-[9px] uppercase font-mono">Portfólio:</span>
         ${p.social && p.social.instagram ? `
           <a href="https://instagram.com/${p.social.instagram}" target="_blank" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-pink-950/60 border border-pink-700/60 text-pink-300 font-bold hover:bg-pink-900 transition" title="Instagram @${p.social.instagram}">
-            <span>📸 Insta</span>
+            <span>Insta</span>
           </a>
         ` : ''}
         ${p.social && p.social.threads ? `
-          <a href="https://threads.net/@${p.social.threads}" target="_blank" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-bold hover:border-cyan-500 transition" title="Threads (App da Meta/Instagram) @${p.social.threads}">
-            <span>🧵 Threads</span>
+          <a href="https://threads.net/@${p.social.threads}" target="_blank" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-bold hover:border-cyan-500 transition" title="Threads">
+            <span>Threads</span>
           </a>
         ` : ''}
         ${p.social && p.social.linkedin ? `
           <a href="https://linkedin.com/in/${p.social.linkedin}" target="_blank" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-950/60 border border-blue-700/60 text-blue-300 font-bold hover:bg-blue-900 transition" title="LinkedIn">
-            <span>💼 LinkedIn</span>
-          </a>
-        ` : ''}
-        ${p.social && p.social.facebook ? `
-          <a href="https://facebook.com/${p.social.facebook}" target="_blank" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-950/60 border border-indigo-700/60 text-indigo-300 font-bold hover:bg-indigo-900 transition" title="Facebook">
-            <span>📘 Face</span>
+            <span>LinkedIn</span>
           </a>
         ` : ''}
         <button onclick="openPortfolioModal('${p.id}')" class="ml-auto text-[10px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 underline active:scale-95 transition">
-          <span>🖼️ Fotos 360° & Portfólio</span>
+          <svg class="w-3 h-3 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          <span>Amostras 360° & Obras</span>
         </button>
       </div>
 
-      <div class="text-[11px] text-slate-400 border-t border-slate-800/80 pt-2 flex items-center justify-between gap-2">
-        <span class="truncate text-[10px] text-slate-500">🛸 ${p.drones[0]}</span>
-        <div class="flex items-center gap-1.5">
-          <button onclick="openEscrowForPilot('${p.nome}', ${p.preco})" class="bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-semibold text-[11px] px-2.5 py-1 rounded-xl transition active:scale-95">
-            🛡️ Contratar Seguro
+      <!-- Contratação Híbrida: Direta ou Cotação Sigilosa (Argon Decisão Doc 38) -->
+      <div class="text-[11px] text-slate-400 border-t border-slate-800/80 pt-2 flex items-center justify-between gap-1.5 flex-wrap sm:flex-nowrap">
+        <span class="truncate text-[10px] text-slate-400 flex items-center gap-1">
+          <svg class="w-3 h-3 text-cyan-400 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07 19.07 4.93"/></svg>
+          ${p.drones[0]}
+        </span>
+        <div class="flex items-center gap-1.5 ml-auto">
+          <button onclick="openEscrowForPilot('${p.nome}', ${p.preco}, 'direta')" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] px-2.5 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1 shadow-sm">
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+            <span>Contratar (R$ ${p.preco})</span>
           </button>
-          <a href="https://wa.me/55${p.zap}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)},%20vi%20seu%20perfil%20no%20DroneHub%20e%20gostaria%20de%20um%20or%C3%A7amento%20para%20C%C3%A2mera%20360%C2%B0%20/%20Timelapse!" 
+          <button onclick="openCotacaoSigilosa('${p.nome}')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold text-[11px] px-2 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1" title="Cotação Fechada com Blindagem RLS">
+            <svg class="w-3 h-3 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Cotação</span>
+          </button>
+          <a href="https://wa.me/55${p.zap}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)},%20vi%20seu%20perfil%20homologado%20no%20DroneHub%20e%20gostaria%20de%20um%20or%C3%A7amento!" 
              target="_blank" 
-             class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-2.5 py-1 rounded-xl transition active:scale-95">
-            WhatsApp
+             class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-2.5 py-1.5 rounded-xl transition active:scale-95 flex items-center gap-1">
+            <svg class="w-3 h-3 text-slate-950 fill-slate-950" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+            <span>Zap</span>
           </a>
         </div>
       </div>
@@ -1760,24 +1865,49 @@ function resetFilters() {
 }
 
 // ——————————————————————————————————————————————————————————
-// 3. SISTEMA DE GARANTIA PIX SEGURO (ESCROW)
+// 3. SISTEMA DE GARANTIA PIX SEGURO (ESCROW) — TALMIDDEV
 // ——————————————————————————————————————————————————————————
 let currentEscrowState = 1;
 
-function openEscrowDemo() {
-  openEscrowForPilot("Lucas Andrade", 2200);
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const t = document.createElement('div');
+  const bg = type === 'success' ? 'bg-emerald-950 border-emerald-500 text-emerald-300' :
+             type === 'error' ? 'bg-rose-950 border-rose-500 text-rose-300' :
+             'bg-slate-900 border-cyan-500 text-cyan-300';
+  t.className = `p-3 rounded-xl border ${bg} text-xs shadow-xl animate-fade-in flex items-center gap-2 pointer-events-auto`;
+  t.innerHTML = `<span>${message}</span>`;
+  container.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+    setTimeout(() => t.remove(), 300);
+  }, 3500);
 }
 
-function openEscrowForPilot(pilotName, price) {
+function openEscrowDemo() {
+  openEscrowForPilot("Lucas Andrade", 2200, 'direta');
+}
+
+function openEscrowForPilot(pilotName, price, tipo = 'direta') {
   document.getElementById('escrowPilotName').innerText = pilotName;
   document.getElementById('escrowValMission').innerText = 'R$ ' + price.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-  const fee = price * 0.03; // 3% Taxa de Custódia
+  const fee = price * 0.03; // 3% Taxa de Proteção & Custódia
   const total = price + fee;
-  document.getElementById('escrowFeeText').innerText = 'R$ ' + fee.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ' (3%)';
+  document.getElementById('escrowFeeText').innerText = 'R$ ' + fee.toLocaleString('pt-BR', {minimumFractionDigits: 2});
   document.getElementById('escrowValTotal').innerText = 'R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+  const typeBadge = document.getElementById('escrowModalType');
+  if (typeBadge) {
+    typeBadge.innerText = tipo === 'direta' ? 'CONTRATAÇÃO DIRETA • DIÁRIA FIXA' : 'COTAÇÃO SOB MEDIDA • PROPOSTA SIGILOSA';
+  }
   currentEscrowState = 1;
   updateEscrowProgress();
   document.getElementById('escrowModal').classList.remove('hidden');
+}
+
+function openCotacaoSigilosa(pilotName) {
+  showToast(`🔒 Abrindo Cotação Sigilosa com ${pilotName} (Blindagem RLS)...`, 'info');
+  openEscrowForPilot(pilotName, 3500, 'sigilosa');
 }
 
 function closeEscrowModal() {
@@ -1801,15 +1931,22 @@ function selectRetaPlan(plan, el) {
 function copyPixKey() {
   const key = document.getElementById('pixKeyInput').value;
   navigator.clipboard.writeText(key).then(() => {
-    alert('✅ Chave PIX de custódia copiada! Cole no seu aplicativo bancário.');
+    showToast('Chave PIX de custódia copiada com sucesso!', 'success');
   }).catch(() => {
-    alert('Chave: pix.garantia@dronehub.com.br');
+    showToast('Chave: pix.garantia@dronehub.com.br', 'info');
   });
 }
 
 function advanceEscrowDemo() {
   currentEscrowState++;
-  if (currentEscrowState > 3) currentEscrowState = 1;
+  if (currentEscrowState > 3) {
+    currentEscrowState = 1;
+    showToast('Ciclo de custódia reiniciado para nova simulação.', 'info');
+  } else if (currentEscrowState === 2) {
+    showToast('Voo executado! Laudo técnico com Hash SHA-256 anexado à custódia.', 'success');
+  } else if (currentEscrowState === 3) {
+    showToast('Laudo aprovado! Pagamento de R$ transferido ao piloto.', 'success');
+  }
   updateEscrowProgress();
 }
 
@@ -1823,19 +1960,19 @@ function updateEscrowProgress() {
     s1.className = 'bg-emerald-950 text-emerald-300 border border-emerald-600 py-1 rounded font-bold';
     s2.className = 'bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded';
     s3.className = 'bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded';
-    btn.innerText = 'Simular: 1. Confirmar PIX em Custódia';
+    btn.innerText = 'Simular: 1. Confirmar Depósito em Custódia';
     btn.className = 'w-full py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs active:scale-95 transition';
   } else if (currentEscrowState === 2) {
     s1.className = 'bg-slate-900 text-slate-400 border border-slate-800 py-1 rounded';
     s2.className = 'bg-amber-950 text-amber-300 border border-amber-600 py-1 rounded font-bold';
     s3.className = 'bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded';
-    btn.innerText = 'Simular: 2. Piloto Concluiu Voo e Subiu Fotos';
+    btn.innerText = 'Simular: 2. Voo Executado & Laudo com SHA-256';
     btn.className = 'w-full py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs active:scale-95 transition';
   } else if (currentEscrowState === 3) {
     s1.className = 'bg-slate-900 text-slate-400 border border-slate-800 py-1 rounded';
     s2.className = 'bg-slate-900 text-slate-400 border border-slate-800 py-1 rounded';
     s3.className = 'bg-emerald-950 text-emerald-300 border border-emerald-500 py-1 rounded font-bold';
-    btn.innerText = 'Simular: 3. Cliente Aprova e Libera R$ ao Piloto 🎉';
+    btn.innerText = 'Simular: 3. Contratante Aprova e Libera R$';
     btn.className = 'w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs active:scale-95 transition';
   }
 }
@@ -1913,23 +2050,43 @@ function shareInviteWhatsApp() {
 // ——————————————————————————————————————————————————————————
 function renderDemands() {
   const container = document.getElementById('demandsList');
+  if (!container) return;
+  if (demands.length === 0) {
+    container.innerHTML = `
+      <div class="card p-6 text-center text-slate-400 space-y-2">
+        <p class="text-xs">Nenhuma missão aberta no momento.</p>
+        <button onclick="openPublishDemandModal()" class="text-xs text-cyan-400 font-semibold underline">Publicar a primeira missão</button>
+      </div>`;
+    return;
+  }
   container.innerHTML = demands.map(d => `
     <div class="card p-3.5 space-y-2">
       <div class="flex items-start justify-between">
         <div>
           <span class="text-[10px] font-mono text-cyan-400 font-bold uppercase">${d.categoria}</span>
           <h4 class="text-xs font-bold text-white">${d.titulo}</h4>
-          <span class="text-[11px] text-slate-400">📍 ${d.local} • ${d.data || 'Ativa'}</span>
+          <span class="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
+            <svg class="w-3 h-3 text-slate-500 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            ${d.local} • ${d.data || 'Ativa'}
+          </span>
         </div>
         <span class="text-xs font-mono font-bold text-emerald-400">${d.orcamento}</span>
       </div>
       <div class="border-t border-slate-800/80 pt-2 flex items-center justify-between">
-        <span class="text-[10px] text-slate-500">Exige conformidade ANAC</span>
-        <a href="https://wa.me/55${d.contato}?text=Ol%C3%A1,%20tenho%20interesse%20na%20miss%C3%A3o:%20${encodeURIComponent(d.titulo)}" 
-           target="_blank" 
-           class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3 py-1 rounded-lg">
-          Enviar Proposta
-        </a>
+        <span class="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+          <svg class="w-3 h-3 text-emerald-400 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Garantia Escrow & ANAC
+        </span>
+        <div class="flex items-center gap-1.5">
+          <button onclick="openCotacaoSigilosa('${d.titulo}')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-[11px] px-2.5 py-1 rounded-lg transition active:scale-95">
+            Lance Sigiloso (RLS)
+          </button>
+          <a href="https://wa.me/55${d.contato}?text=Ol%C3%A1,%20tenho%20interesse%20na%20miss%C3%A3o:%20${encodeURIComponent(d.titulo)}" 
+             target="_blank" 
+             class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-2.5 py-1 rounded-lg transition active:scale-95">
+            Contato
+          </a>
+        </div>
       </div>
     </div>
   `).join('');
@@ -2840,6 +2997,21 @@ document.addEventListener('DOMContentLoaded', () => {
   recalcMission();
   // Garante que o mapa começa escondido corretamente
   document.getElementById('mapModal').style.display = 'none';
+
+  // TalmidDev: Gerenciamento de Conectividade e Modo Offline
+  function checkOnlineStatus() {
+    const banner = document.getElementById('offlineBanner');
+    if (banner) {
+      if (!navigator.onLine) {
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+  }
+  window.addEventListener('online', checkOnlineStatus);
+  window.addEventListener('offline', checkOnlineStatus);
+  checkOnlineStatus();
 });
 </script>
 </body>
