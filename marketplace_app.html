@@ -1,0 +1,2845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#020617">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>DroneHub Brasil — O Super App Definitivo de Drones</title>
+
+<!-- Fontes & Bibliotecas -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace']
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.3s ease-out',
+        'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        'pulse-fast': 'pulse 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+      },
+      keyframes: {
+        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+        slideUp: { '0%': { opacity: '0', transform: 'translateY(16px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
+      }
+    }
+  }
+}
+</script>
+
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg-primary: #020617;
+  --bg-secondary: #0a0f1e;
+  --bg-card: #0d1526;
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-mid: rgba(255,255,255,0.12);
+  --accent-cyan: #06b6d4;
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+}
+body {
+  background: var(--bg-primary);
+  color: #f8fafc;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+#app {
+  max-width: 440px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  position: relative;
+  box-shadow: 0 0 60px rgba(0,0,0,0.9);
+}
+::-webkit-scrollbar { width: 0; height: 0; }
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 440px;
+  background: rgba(2, 6, 23, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  padding: 6px 4px calc(env(safe-area-inset-bottom, 0px) + 6px);
+  z-index: 50;
+}
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 2px;
+  color: #64748b;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.nav-item.active {
+  color: #06b6d4;
+}
+.nav-item.active svg {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 0 8px rgba(6,182,212,0.6));
+}
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 3px;
+  letter-spacing: -0.01em;
+}
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background: #0f172a;
+  color: #94a3b8;
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+  transition: all 0.18s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.category-chip:active { transform: scale(0.95); }
+.category-chip.active {
+  background: rgba(6,182,212,0.15);
+  color: #22d3ee;
+  border-color: rgba(6,182,212,0.4);
+  box-shadow: 0 0 10px rgba(6,182,212,0.15);
+}
+/* Carrossel horizontal com scroll nativo em touch */
+.chips-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 4px;
+  padding-right: 16px;
+}
+.chips-scroll::-webkit-scrollbar { display: none; }
+.chips-scroll .category-chip { scroll-snap-align: start; }
+.hud-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle, transparent 65%, rgba(2,6,23,0.7) 100%);
+}
+/* Inputs e selects escuros */
+input[type=text], input[type=tel], input[type=number], select, textarea {
+  -webkit-appearance: none;
+  appearance: none;
+  color-scheme: dark;
+}
+/* Botões sem zoom no iOS */
+button, input, select, a { touch-action: manipulation; }
+/* Modais */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+}
+@media (min-height: 600px) {
+  .modal-overlay { align-items: center; }
+}
+/* Custom Leaflet Dark / Aviation Theme */
+.leaflet-popup-content-wrapper {
+  background: #0d1526 !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(6,182,212,0.4) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8) !important;
+  padding: 4px !important;
+}
+.leaflet-popup-tip {
+  background: #0d1526 !important;
+}
+.leaflet-container {
+  background: #020617 !important;
+  font-family: inherit !important;
+}
+.map-dark-tiles .leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7) !important;
+}
+.hud-ladder {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  height: 90px;
+  border-left: 2px solid rgba(6,182,212,0.6);
+  border-right: 2px solid rgba(6,182,212,0.6);
+}
+.hud-ladder::before, .hud-ladder::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 2px;
+  background: rgba(6,182,212,0.8);
+}
+.hud-ladder::before { left: 0; }
+.hud-ladder::after { right: 0; }
+</style>
+</head>
+
+<body class="antialiased">
+<div id="app">
+
+  <!-- ================= TOP HEADER FIXO ================= -->
+  <header class="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <svg width="20" height="20" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07 19.07 4.93"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold text-base tracking-tight text-white">DRONE<span class="text-cyan-400">HUB</span></span>
+            <span class="text-[9px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded uppercase">PAN-AM V6</span>
+          </div>
+          <p class="text-[10px] text-slate-400 font-medium">Américas Total • Live, Cockpit & IA</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5">
+        <button onclick="openAeroAIModal()" class="flex items-center gap-1 text-[11px] font-bold bg-gradient-to-r from-cyan-950 to-blue-950 border border-cyan-400/60 text-cyan-300 px-2 py-1.5 rounded-lg active:scale-95 transition shadow-sm animate-pulse">
+          <span>🤖 Copiloto IA</span>
+        </button>
+        <button onclick="openRetaModal()" class="flex items-center gap-1 text-[11px] font-semibold bg-cyan-950/80 border border-cyan-800 text-cyan-300 px-2 py-1.5 rounded-lg active:scale-95 transition">
+          <span>🛡️ RETA</span>
+        </button>
+        <button onclick="shareInviteWhatsApp()" class="flex items-center gap-1 text-[11px] font-semibold bg-emerald-950 border border-emerald-800 text-emerald-300 px-2 py-1.5 rounded-lg active:scale-95 transition">
+          <span>📲 Convidar</span>
+        </button>
+        <button onclick="toggleMapModal()" class="flex items-center gap-1 text-[11px] font-medium bg-slate-900 border border-slate-800 text-slate-300 px-2 py-1.5 rounded-lg active:scale-95 transition">
+          <svg width="13" height="13" fill="none" stroke="#06b6d4" stroke-width="2" viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg>
+          <span>Mapa</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= CONTEÚDO PRINCIPAL (COM SCROLL) ================= -->
+  <main id="mainScroll" class="flex-1 overflow-y-auto pb-28 px-3.5 pt-3">
+
+    <!-- ======================================================= -->
+    <!-- ABA 1: EXPLORAR (MARKETPLACE DE PILOTOS)                 -->
+    <!-- ======================================================= -->
+    <div id="tabExplorar" class="space-y-4 animate-fade-in">
+
+      <!-- Banner de Proteção com Escrow / Garantia (Taxa de 3%) -->
+      <div class="bg-gradient-to-r from-cyan-950/80 via-slate-900 to-emerald-950/80 border border-cyan-500/30 rounded-2xl p-3 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-400 font-bold text-sm">
+            🛡️
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h4 class="text-xs font-bold text-white">Garantia DroneHub LATAM</h4>
+              <span class="text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-700 px-1 rounded">TAXA 3%</span>
+            </div>
+            <p class="text-[10px] text-slate-300">Pagamento retido até você aprovar laudos e fotos da missão.</p>
+          </div>
+        </div>
+        <button onclick="openEscrowDemo()" class="text-[10px] font-bold bg-cyan-500 text-slate-950 px-2.5 py-1.5 rounded-lg whitespace-nowrap active:scale-95 shadow-sm">
+          Como Funciona
+        </button>
+      </div>
+
+      <!-- Barra de Pesquisa e Filtro Pan-Americano (América do Sul, Central e Norte) -->
+      <div class="card p-3 space-y-2.5">
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input type="text" id="searchInput" placeholder="Buscar piloto, cidade, país, DJI..." 
+                   oninput="filterPilots()" 
+                   class="w-full bg-slate-900/90 border border-slate-800 text-slate-200 text-xs rounded-xl pl-8 pr-3 py-2.5 focus:outline-none focus:border-cyan-500 placeholder-slate-500">
+            <svg class="absolute left-2.5 top-3 text-slate-500" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          </div>
+          <select id="stateFilter" onchange="filterPilots()" 
+                  class="bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded-xl px-2.5 py-2.5 focus:outline-none focus:border-cyan-500 font-semibold max-w-[155px]">
+            <option value="">🌎 Todas as Américas</option>
+            <optgroup label="🇺🇸 Estados Unidos (USA)">
+              <option value="US_FL">🇺🇸 Flórida (Miami)</option>
+              <option value="US_TX">🇺🇸 Texas (Houston)</option>
+              <option value="US_CA">🇺🇸 Califórnia (LA)</option>
+            </optgroup>
+            <optgroup label="🇲🇽 México">
+              <option value="MX_CDMX">🇲🇽 Cidade do México</option>
+              <option value="MX_NL">🇲🇽 Monterrey (N.L.)</option>
+            </optgroup>
+            <optgroup label="🇨🇦 Canadá">
+              <option value="CA_ON">🇨🇦 Ontário (Toronto)</option>
+            </optgroup>
+            <optgroup label="🌴 América Central & Caribe">
+              <option value="PA">🇵🇦 Panamá (Canal)</option>
+              <option value="CR">🇨🇷 Costa Rica</option>
+              <option value="DO">🇩🇴 Rep. Dominicana</option>
+            </optgroup>
+            <optgroup label="🇧🇷 Brasil">
+              <option value="SP">SP - São Paulo</option>
+              <option value="RJ">RJ - Rio de Janeiro</option>
+              <option value="MG">MG - Minas Gerais</option>
+              <option value="PR">PR - Paraná</option>
+              <option value="RS">RS - Rio G. do Sul</option>
+              <option value="SC">SC - Santa Catarina</option>
+              <option value="BA">BA - Bahia</option>
+              <option value="GO">GO - Goiás</option>
+              <option value="MT">MT - Mato Grosso</option>
+              <option value="MS">MS - Mato G. do Sul</option>
+              <option value="DF">DF - Brasília</option>
+              <option value="AM">AM - Amazonas</option>
+              <option value="PA">PA - Pará</option>
+              <option value="ES">ES - Espírito Santo</option>
+              <option value="BR_OUTROS">Demais UFs Brasil</option>
+            </optgroup>
+            <optgroup label="🌎 América do Sul">
+              <option value="AR">🇦🇷 Argentina</option>
+              <option value="CL">🇨🇱 Chile</option>
+              <option value="CO">🇨🇴 Colômbia</option>
+              <option value="UY">🇺🇾 Uruguai</option>
+              <option value="PY">🇵🇾 Paraguai</option>
+              <option value="PE_INT">🇵🇪 Peru</option>
+              <option value="BO">🇧🇴 Bolívia</option>
+              <option value="EC">🇪🇨 Equador</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Carrossel de Categorias — Scroll Horizontal com Touch Nativo -->
+        <div class="chips-scroll" id="categoryChips">
+          <button class="category-chip active" onclick="selectCategory('TODAS', this)">⚡ Todas</button>
+          <button class="category-chip" onclick="selectCategory('Câmera 360° & Tour Virtual', this)">🔄 Câmera 360°</button>
+          <button class="category-chip" onclick="selectCategory('Timelapse de Obras', this)">⏱️ Timelapse</button>
+          <button class="category-chip" onclick="selectCategory('Topografia & LiDAR', this)">📐 Topo & LiDAR</button>
+          <button class="category-chip" onclick="selectCategory('Inspeção Eólica & Solar', this)">⚡ Eólica & Solar</button>
+          <button class="category-chip" onclick="selectCategory('Termografia Industrial', this)">🌡️ Termografia</button>
+          <button class="category-chip" onclick="selectCategory('Construção & BIM', this)">🏗️ Obras & BIM</button>
+          <button class="category-chip" onclick="selectCategory('Transmissão ao Vivo', this)">📡 Live Stream</button>
+          <button class="category-chip" onclick="selectCategory('Pulverização Agrícola', this)">🌾 Agro & Pulverização</button>
+          <button class="category-chip" onclick="selectCategory('Drone FPV & Audiovisual', this)">🎬 FPV & Cinema</button>
+        </div>
+      </div>
+
+      <!-- Métricas Rápidas do Marketplace -->
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="card p-2.5">
+          <span class="text-xs text-slate-400 block font-medium">Pilotos Ativos</span>
+          <span class="text-lg font-bold text-white font-mono" id="statPilotsCount">35</span>
+        </div>
+        <div class="card p-2.5">
+          <span class="text-xs text-slate-400 block font-medium">Cobertura</span>
+          <span class="text-xs font-bold text-emerald-400 block mt-1">Américas Total</span>
+        </div>
+        <div class="card p-2.5">
+          <span class="text-xs text-slate-400 block font-medium">Custódia Segura</span>
+          <span class="text-xs font-bold text-cyan-400 block mt-1">Taxa 3% Escrow</span>
+        </div>
+      </div>
+
+      <!-- Feed / Lista de Cards de Pilotos -->
+      <div id="pilotsList" class="space-y-3">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- ABA 2: TRANSMISSÃO AO VIVO REAL & INTERCOM              -->
+    <!-- ======================================================= -->
+    <div id="tabLive" class="space-y-3.5 hidden animate-fade-in">
+      
+      <!-- Topo da Sala de Live -->
+      <div class="card p-3 flex items-center justify-between border-cyan-900/40">
+        <div class="flex items-center gap-2">
+          <span class="relative flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+          </span>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold text-white uppercase tracking-wider" id="liveFeedStatus">FEED AO VIVO</span>
+              <span class="text-[9px] font-mono bg-rose-950 text-rose-300 border border-rose-800 px-1.5 py-0.2 rounded font-bold" id="liveSourceBadge">SIMULAÇÃO 4K</span>
+            </div>
+            <p class="text-[10px] text-slate-400" id="liveDroneInfo">DJI Matrice 350 RTK • Piloto: Lucas Andrade</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] font-mono text-emerald-400 block font-bold">LATÊNCIA: 28ms</span>
+          <span class="text-[9px] text-slate-400">Ultra-Low Latency</span>
+        </div>
+      </div>
+
+      <!-- BOTÕES DE CONTROLE DA FONTE DO VÍDEO (REAL VS SIMULADO) -->
+      <div class="flex gap-2">
+        <button onclick="toggleRealCamera()" id="btnRealCam" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center justify-center gap-1.5 transition active:scale-95">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span id="txtRealCam">Ligar Câmera Real</span>
+        </button>
+        <button onclick="toggleStreamInputModal()" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-cyan-300 border border-slate-800 flex items-center justify-center gap-1.5 transition active:scale-95">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3v6Z"/></svg>
+          Link RTMP / OBS
+        </button>
+      </div>
+
+      <!-- TELA DE VÍDEO DO DRONE (VÍDEO REAL OU SIMULADOR COM HUD TELEMÉTRICO) -->
+      <div class="relative w-full aspect-video bg-slate-950 rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl shadow-cyan-950/40">
+        
+        <!-- Elemento de Vídeo Real da Câmera do Smartphone / Webcam -->
+        <video id="realVideoPlayer" autoplay playsinline muted class="w-full h-full object-cover hidden"></video>
+
+        <!-- Canvas de Simulação Tática de Voo Ultra-Realista -->
+        <canvas id="liveDroneCanvas" class="w-full h-full object-cover block"></canvas>
+
+        <!-- HUD Militar & Informações Aéreas Sobrepostas -->
+        <div class="hud-overlay">
+          <!-- Canto Superior Esquerdo: Bateria & Tensão -->
+          <div class="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 font-mono text-[10px] space-y-0.5">
+            <div class="flex items-center gap-1.5 text-emerald-400 font-bold">
+              <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><rect width="18" height="12" x="2" y="6" rx="2"/><path d="M22 10v4"/></svg>
+              <span id="hudBat">87% (49.8V)</span>
+            </div>
+            <div class="text-slate-400 text-[9px]">TB65 Par #2 • Temp: 28°C</div>
+          </div>
+
+          <!-- Canto Superior Direito: GNSS & RTH -->
+          <div class="absolute top-2.5 right-2.5 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 font-mono text-[10px] text-right space-y-0.5">
+            <div class="text-cyan-400 font-bold">RTK FIX (31 SATS)</div>
+            <div class="text-slate-400 text-[9px]">HOME: 410m • RTH: 22%</div>
+          </div>
+
+          <!-- BÚSSOLA DIGITAL & HEADING TÁTICO HUD (Fita de Rumo Giroscópica) -->
+          <div class="absolute top-2.5 left-1/2 -translate-x-1/2 bg-black/75 backdrop-blur-md px-3 py-1 rounded-xl border border-cyan-500/40 font-mono shadow-xl flex items-center gap-2.5 z-20">
+            <!-- Mini Bússola Giroscópica -->
+            <div class="relative w-7 h-7 rounded-full border border-cyan-400/60 bg-slate-950/80 flex items-center justify-center">
+              <div id="hudCompassRose" class="w-full h-full flex items-center justify-center transition-transform duration-200" style="transform: rotate(42deg);">
+                <span class="text-[8px] font-bold text-rose-500 absolute -top-0.5">N</span>
+                <span class="text-[7px] font-bold text-slate-400 absolute -bottom-0.5">S</span>
+                <span class="text-[7px] font-bold text-slate-400 absolute -right-0.5">E</span>
+                <span class="text-[7px] font-bold text-slate-400 absolute -left-0.5">W</span>
+                <div class="w-0.5 h-3.5 bg-gradient-to-t from-cyan-500 to-white rounded-full shadow-sm shadow-cyan-400"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center gap-1 text-[10px]">
+                <span class="text-slate-400">PROA:</span>
+                <span id="hudHeadingVal" class="text-white font-bold font-mono">042° NE</span>
+                <span class="text-cyan-400 text-[9px] font-semibold">(MAG)</span>
+              </div>
+              <div class="text-[8px] text-emerald-400 font-mono flex items-center gap-1">
+                <span>🏠 HOME: 228° SW (410m)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Centro: Mira & Pitch Ladder -->
+          <div class="hud-ladder"></div>
+          <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-cyan-400/50 flex items-center justify-center">
+            <div class="w-1 h-1 bg-cyan-400 rounded-full"></div>
+          </div>
+
+          <!-- Canto Inferior: Telemetria Dinâmica -->
+          <div class="absolute bottom-2.5 inset-x-2.5 flex items-center justify-between bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 font-mono text-[11px]">
+            <div>
+              <span class="text-slate-400 text-[9px] block">ALTITUDE AGL</span>
+              <span class="text-white font-bold" id="hudAlt">94.2 m</span>
+            </div>
+            <div>
+              <span class="text-slate-400 text-[9px] block">VELOCIDADE</span>
+              <span class="text-white font-bold" id="hudSpeed">14.8 m/s</span>
+            </div>
+            <div>
+              <span class="text-slate-400 text-[9px] block">VENTO 100M</span>
+              <span class="text-emerald-400 font-bold" id="hudWind">12 km/h</span>
+            </div>
+            <div>
+              <span class="text-slate-400 text-[9px] block">GIMBAL PITCH</span>
+              <span class="text-cyan-400 font-bold" id="hudGimbal">-45.0°</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Seletor de Câmera / Filtros de Imagem -->
+      <div class="flex gap-2">
+        <button onclick="setCameraMode('rgb')" id="btnCamRGB" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-cyan-950 text-cyan-300 border border-cyan-500/40 flex items-center justify-center gap-1.5 transition">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3v6Z"/></svg>
+          RGB 4K (Visual)
+        </button>
+        <button onclick="setCameraMode('thermal')" id="btnCamThermal" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800 flex items-center justify-center gap-1.5 transition">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+          FLIR Térmica
+        </button>
+        <button onclick="setCameraMode('ndvi')" id="btnCamNDVI" class="flex-1 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800 flex items-center justify-center gap-1.5 transition">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/></svg>
+          NDVI Agro
+        </button>
+      </div>
+
+      <!-- COMUNICAÇÃO CLIENTE <-> PILOTO (INTERCOM & POI) -->
+      <div class="card p-3 space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div class="flex items-center gap-2">
+            <svg width="16" height="16" fill="none" stroke="#06b6d4" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="text-xs font-bold text-white">Intercom Piloto & Engenheiro</span>
+          </div>
+          <span class="text-[10px] text-emerald-400 font-mono font-semibold">● CANAL DE ÁUDIO ATIVO</span>
+        </div>
+
+        <!-- Chat de Mensagens da Operação -->
+        <div id="liveChatMessages" class="h-28 overflow-y-auto space-y-2 text-xs font-sans pr-1">
+          <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800">
+            <span class="text-[10px] text-cyan-400 font-bold block font-mono">PILOTO (Lucas Andrade) [10:42]:</span>
+            <span class="text-slate-300">Decolagem concluída com sucesso. Drone estabilizado a 94m AGL sobre a torre eólica #3.</span>
+          </div>
+          <div class="bg-cyan-950/40 p-2 rounded-lg border border-cyan-800/40">
+            <span class="text-[10px] text-emerald-400 font-bold block font-mono">ENGENHEIRO CLIENTE [10:44]:</span>
+            <span class="text-slate-200">Perfeito Lucas! Mude para câmera térmica para checarmos o superaquecimento do rolamento da nacele.</span>
+          </div>
+        </div>
+
+        <!-- Botões de Ações Rápidas do Cliente -->
+        <div class="flex gap-1.5 overflow-x-auto pb-1 text-[11px]">
+          <button onclick="sendQuickCommand('📸 Tirar Foto de Alta Resolução')" class="px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg hover:border-cyan-500 whitespace-nowrap active:scale-95">📸 Tirar Foto</button>
+          <button onclick="sendQuickCommand('🔍 Aproximar Zoom 4x')" class="px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg hover:border-cyan-500 whitespace-nowrap active:scale-95">🔍 Zoom 4x</button>
+          <button onclick="sendQuickCommand('🌡️ Ligar Termografia')" class="px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg hover:border-cyan-500 whitespace-nowrap active:scale-95">🌡️ Térmica</button>
+          <button onclick="sendQuickCommand('🔄 Girar 90° à Direita')" class="px-2.5 py-1.5 bg-slate-900 border border-slate-700 text-slate-300 rounded-lg hover:border-cyan-500 whitespace-nowrap active:scale-95">🔄 Girar 90°</button>
+        </div>
+
+        <!-- Campo de Mensagem Instantânea -->
+        <div class="flex gap-2">
+          <input type="text" id="liveChatInput" placeholder="Enviar instrução ao piloto em voo..." 
+                 onkeydown="if(event.key==='Enter') sendLiveMessage()"
+                 class="flex-1 bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500">
+          <button onclick="sendLiveMessage()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs transition active:scale-95">
+            Enviar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- ABA 3: DESPACHO JETNINJA (METEOROLOGIA & PERFORMANCE)    -->
+    <!-- ======================================================= -->
+    <div id="tabCockpit" class="space-y-3.5 hidden animate-fade-in">
+      
+      <!-- Topo do Cockpit -->
+      <div class="card p-3 flex items-center justify-between border-cyan-500/20" id="cockpitHeaderCard">
+        <div>
+          <span class="text-xs font-bold text-white flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" id="cockpitPulseDot"></span>
+            DRONENINJA DISPATCH COCKPIT
+          </span>
+          <p class="text-[10px] text-slate-400 font-mono" id="cockpitSarpasText">SARPAS DECEA: AUTORIZADO (BR-94812) • VOO VLOS</p>
+        </div>
+        <div class="text-right">
+          <span class="text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/70 border border-emerald-800 px-2 py-0.5 rounded transition" id="cockpitScoreBadge">
+            GO / SCORE 94%
+          </span>
+        </div>
+      </div>
+
+      <!-- CARD ATALHO PARA COPILOTO IA AEROESPACIAL -->
+      <div class="bg-gradient-to-r from-blue-950/80 via-slate-900 to-cyan-950/80 border border-cyan-500/30 rounded-2xl p-3 flex items-center justify-between shadow-lg">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-cyan-400 font-bold text-sm">
+            🤖
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h4 class="text-xs font-bold text-white">Copiloto IA de Espaço Aéreo</h4>
+              <span class="text-[8px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-700 px-1 rounded">PAN-AM</span>
+            </div>
+            <p class="text-[10px] text-slate-300">Dúvidas sobre regras por país (DECEA, FAA, Transport Canada) ou clima solar?</p>
+          </div>
+        </div>
+        <button onclick="openAeroAIModal()" class="text-[10px] font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-2.5 py-1.5 rounded-lg whitespace-nowrap active:scale-95 shadow-sm transition">
+          Consultar IA
+        </button>
+      </div>
+
+      <!-- BÚSSOLA TÁTICA 360° & ORIENTAÇÃO AEROESPACIAL -->
+      <div class="card p-3 space-y-2.5 border-cyan-500/30">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm">🧭</span>
+            <span class="text-xs font-bold text-slate-200 uppercase tracking-wider">Bússola Tática 360° & Vetores de Orientação</span>
+          </div>
+          <span class="text-[10px] font-mono text-cyan-400 font-bold bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">
+            SISTEMA GIROSCÓPICO ATIVO
+          </span>
+        </div>
+
+        <div class="grid grid-cols-12 gap-3 items-center">
+          <!-- Dial Visual da Bússola -->
+          <div class="col-span-5 flex justify-center">
+            <div class="relative w-28 h-28 rounded-full border-2 border-cyan-500/40 bg-slate-950 shadow-inner flex items-center justify-center p-1">
+              <!-- Rosa dos Ventos Giratória -->
+              <div id="cockpitCompassDial" class="w-full h-full rounded-full relative flex items-center justify-center transition-transform duration-300" style="transform: rotate(42deg);">
+                <span class="text-[10px] font-black text-rose-500 absolute top-0.5">N</span>
+                <span class="text-[9px] font-bold text-cyan-400 absolute right-1">E</span>
+                <span class="text-[9px] font-bold text-slate-400 absolute bottom-0.5">S</span>
+                <span class="text-[9px] font-bold text-slate-400 absolute left-1">W</span>
+                
+                <div class="w-full h-px bg-slate-800/80 absolute"></div>
+                <div class="h-full w-px bg-slate-800/80 absolute"></div>
+
+                <!-- Silhueta Tática do Drone no Centro -->
+                <div class="w-6 h-6 flex items-center justify-center z-10">
+                  <svg width="22" height="22" fill="#22d3ee" viewBox="0 0 24 24">
+                    <path d="M12 2L4 20l8-3 8 3z"/>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Anel de Graduação Externa -->
+              <div class="absolute inset-0 rounded-full border border-dashed border-cyan-400/20 pointer-events-none"></div>
+            </div>
+          </div>
+
+          <!-- Informações de Orientação & Vetores -->
+          <div class="col-span-7 space-y-2 text-xs font-mono">
+            <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex justify-between items-center">
+              <span class="text-slate-400 text-[10px]">RUMO / HEADING:</span>
+              <span class="text-white font-bold" id="cockpitHeadingText">042° (Nordeste)</span>
+            </div>
+            <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex justify-between items-center">
+              <span class="text-slate-400 text-[10px]">VETOR HOME (RTH):</span>
+              <span class="text-emerald-400 font-bold" id="cockpitHomeVector">228° SW (Dist: 410m)</span>
+            </div>
+            <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800 flex justify-between items-center">
+              <span class="text-slate-400 text-[10px]">VENTO RELATIVO:</span>
+              <span class="text-cyan-300 font-bold" id="cockpitWindRelative">Vento de Proa (12 km/h)</span>
+            </div>
+
+            <!-- Botões de Giro Rápido para o Piloto Testar Orientação -->
+            <div class="flex gap-1 pt-0.5">
+              <button onclick="rotateDroneHeading(0)" class="flex-1 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-300 hover:border-cyan-500 transition active:scale-95">Norte 0°</button>
+              <button onclick="rotateDroneHeading(90)" class="flex-1 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-300 hover:border-cyan-500 transition active:scale-95">Leste 90°</button>
+              <button onclick="rotateDroneHeading(180)" class="flex-1 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-300 hover:border-cyan-500 transition active:scale-95">Sul 180°</button>
+              <button onclick="rotateDroneHeading(270)" class="flex-1 py-1 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-300 hover:border-cyan-500 transition active:scale-95">Oeste 270°</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meteorologia de Baixa Altitude (Micro-MET) -->
+      <div class="card p-3 space-y-3">
+        <span class="text-xs font-bold text-slate-200 block uppercase tracking-wider">Meteorologia em Camadas (Wind Aloft)</span>
+        
+        <div class="grid grid-cols-4 gap-2 text-center font-mono text-xs">
+          <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Solo (10m)</span>
+            <span class="text-emerald-400 font-bold block mt-1">9 km/h</span>
+            <span class="text-[9px] text-slate-500">Rajada 14</span>
+          </div>
+          <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">50m AGL</span>
+            <span class="text-emerald-400 font-bold block mt-1">12 km/h</span>
+            <span class="text-[9px] text-slate-500">Rajada 18</span>
+          </div>
+          <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">100m AGL</span>
+            <span class="text-amber-400 font-bold block mt-1">16 km/h</span>
+            <span class="text-[9px] text-slate-500">Rajada 22</span>
+          </div>
+          <div class="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">120m (Teto)</span>
+            <span class="text-amber-400 font-bold block mt-1">19 km/h</span>
+            <span class="text-[9px] text-slate-500">Rajada 26</span>
+          </div>
+        </div>
+
+        <!-- Clima Espacial (KP Index) & Satélites com Cards Educativos -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <!-- Card KP -->
+          <div onclick="openKpPdopModal('kp')" class="bg-slate-900/70 hover:bg-slate-800/80 p-2.5 rounded-xl border border-slate-800 hover:border-cyan-500/50 cursor-pointer transition flex flex-col justify-between group">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] text-slate-400 flex items-center gap-1 font-semibold">
+                Índice Solar (KP)
+                <span class="w-3.5 h-3.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center text-[8px] font-bold group-hover:bg-cyan-500 group-hover:text-slate-950 transition">ⓘ</span>
+              </span>
+              <span class="text-[9px] font-mono px-1.5 py-0.2 rounded font-bold transition" id="badgeKpStatus">GPS SEGURO</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+              <span class="text-sm font-bold font-mono transition" id="valKpStatus">KP 1.8 (Calmo)</span>
+              <span class="text-[9px] text-cyan-400 underline font-medium">Ver Risco</span>
+            </div>
+          </div>
+
+          <!-- Card PDOP -->
+          <div onclick="openKpPdopModal('pdop')" class="bg-slate-900/70 hover:bg-slate-800/80 p-2.5 rounded-xl border border-slate-800 hover:border-cyan-500/50 cursor-pointer transition flex flex-col justify-between group">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] text-slate-400 flex items-center gap-1 font-semibold">
+                Satélites & PDOP
+                <span class="w-3.5 h-3.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center text-[8px] font-bold group-hover:bg-cyan-500 group-hover:text-slate-950 transition">ⓘ</span>
+              </span>
+              <span class="text-[9px] font-mono bg-cyan-950 text-cyan-300 px-1.5 py-0.2 rounded font-bold" id="badgePdopStatus">PDOP 1.1</span>
+            </div>
+            <div class="flex items-baseline justify-between">
+              <span class="text-sm font-bold text-cyan-400 font-mono" id="valSatsStatus">29 Sats (RTK)</span>
+              <span class="text-[9px] text-cyan-400 underline font-medium">Ver Risco</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seletor de Simulação Meteorológica & Solar para o Piloto -->
+        <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+          <span class="text-[10px] text-slate-400">Simulador de Condições:</span>
+          <div class="flex gap-1.5">
+            <button onclick="setFlightCondition('safe')" id="btnCondSafe" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-500 text-slate-950 transition active:scale-95 shadow-sm">
+              ☀️ Clima Seguro (KP 1.8)
+            </button>
+            <button onclick="setFlightCondition('danger')" id="btnCondDanger" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-rose-400 border border-rose-900 hover:border-rose-500 transition active:scale-95">
+              ⚠️ Tempestade Solar (KP 6.2)
+            </button>
+          </div>
+        </div>
+
+        <!-- ALERTA CRÍTICO DE RISCO (EXIBIDO SE SIMULAR TEMPESTADE / NO-GO) -->
+        <div id="riskWarningBox" class="hidden bg-rose-950/80 border-2 border-rose-500/80 rounded-2xl p-3.5 space-y-2.5 animate-pulse">
+          <div class="flex items-start gap-2.5">
+            <span class="text-xl">⚠️</span>
+            <div>
+              <h4 class="text-xs font-black text-rose-200 uppercase tracking-wider">OPERAÇÃO EM ESTADO NO-GO / RISCO CRÍTICO</h4>
+              <p class="text-[11px] text-rose-300 mt-0.5 leading-relaxed">
+                Índice Solar <b>KP 6.2 (Tempestade Geomagnética G2)</b> e Rajadas de <b>42 km/h</b> detectados. Há perigo real de perda de sinal GPS, deriva incontrolável (Flyaway) e queda.
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-black/60 p-2 rounded-xl border border-rose-800/60 text-[10px] text-slate-300 font-mono">
+            <span>DECISÃO: DECOLAGEM AUTOMÁTICA REPROVADA PELO DESPACHO</span>
+          </div>
+
+          <!-- Botão para abrir o Termo de Assunção de Risco -->
+          <button onclick="openRiskWaiverModal()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold text-xs shadow-lg shadow-rose-950/80 active:scale-95 transition flex items-center justify-center gap-2">
+            <span>📋 Abrir Termo de Assunção de Risco (Safe Harbor)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Calculadora de Mapeamento & Bateria -->
+      <div class="card p-3 space-y-3">
+        <span class="text-xs font-bold text-slate-200 block uppercase tracking-wider">Calculadora de Missão & Baterias</span>
+        
+        <div class="grid grid-cols-2 gap-2.5 text-xs">
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Área da Poligonal (Hectares)</label>
+            <input type="number" id="calcArea" value="45" oninput="recalcMission()" 
+                   class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-xl p-2 font-mono text-xs">
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Altitude de Voo (m AGL)</label>
+            <input type="number" id="calcAlt" value="100" oninput="recalcMission()" 
+                   class="w-full bg-slate-900 border border-slate-800 text-slate-100 rounded-xl p-2 font-mono text-xs">
+          </div>
+        </div>
+
+        <!-- Resultados de Performance -->
+        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 grid grid-cols-3 gap-2 text-center font-mono">
+          <div>
+            <span class="text-[9px] text-slate-500 block">GSD ESTIMADO</span>
+            <span class="text-xs font-bold text-cyan-400" id="resGSD">1.8 cm/px</span>
+          </div>
+          <div>
+            <span class="text-[9px] text-slate-500 block">TEMPO DE VOO</span>
+            <span class="text-xs font-bold text-white" id="resTempo">28 min</span>
+          </div>
+          <div>
+            <span class="text-[9px] text-slate-500 block">BATERIAS NEC.</span>
+            <span class="text-xs font-bold text-emerald-400" id="resBaterias">1 Par TB65</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Matriz de Decisão Go / No-Go -->
+      <div class="card p-3 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-200 uppercase tracking-wider">Checklist de Segurança</span>
+          <span class="text-[10px] font-mono text-emerald-400 font-bold">4/4 CONFORME</span>
+        </div>
+        <div class="space-y-1.5 text-xs text-slate-300">
+          <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 cursor-pointer">
+            <input type="checkbox" checked class="accent-cyan-500">
+            <span>Espaço aéreo verificado no SARPAS (Sem NOTAM impeditivo)</span>
+          </label>
+          <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 cursor-pointer">
+            <input type="checkbox" checked class="accent-cyan-500">
+            <span>Seguro RETA e homologação Anatel vigentes</span>
+          </label>
+          <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 cursor-pointer">
+            <input type="checkbox" checked class="accent-cyan-500">
+            <span>Sensores ópticos e hélices inspecionados</span>
+          </label>
+          <label class="flex items-center gap-2 p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 cursor-pointer">
+            <input type="checkbox" checked class="accent-cyan-500">
+            <span>Ponto de Home gravado e altitude RTH configurada em 120m</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- ABA 4: MURAL DE MISSÕES / VAGAS (ESTILO ZEITVIEW)       -->
+    <!-- ======================================================= -->
+    <div id="tabVagas" class="space-y-3.5 hidden animate-fade-in">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-sm font-bold text-white">Mural de Missões e Vagas</h2>
+          <p class="text-[10px] text-slate-400">Contratos corporativos e demandas abertas</p>
+        </div>
+        <button onclick="openPublishDemandModal()" class="text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-3 py-1.5 rounded-xl transition active:scale-95">
+          Publicar Missão
+        </button>
+      </div>
+
+      <div id="demandsList" class="space-y-3">
+        <!-- Demandas renderizadas via JS -->
+      </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- ABA 5: SOU PILOTO / HANGAR & CADASTRO                   -->
+    <!-- ======================================================= -->
+    <div id="tabCadastro" class="space-y-4 hidden animate-fade-in">
+      <div class="card p-4 space-y-4">
+        <div>
+          <h2 class="text-sm font-bold text-white">Cadastre-se como Piloto Profissional</h2>
+          <p class="text-xs text-slate-400">Receba propostas de empresas e clientes da sua região com garantia PIX.</p>
+        </div>
+
+        <form id="pilotForm" onsubmit="handlePilotSubmit(event)" class="space-y-3 text-xs">
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Nome Completo *</label>
+            <input type="text" id="pNome" required placeholder="Ex: Lucas Ferreira Silva" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">WhatsApp (DDD + Número) *</label>
+              <input type="tel" id="pZap" required placeholder="11999998888" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Estado (UF) *</label>
+              <select id="pUF" required class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100">
+                <option value="SP">São Paulo (SP)</option>
+                <option value="RJ">Rio de Janeiro (RJ)</option>
+                <option value="MG">Minas Gerais (MG)</option>
+                <option value="PR">Paraná (PR)</option>
+                <option value="RS">Rio Grande do Sul (RS)</option>
+                <option value="SC">Santa Catarina (SC)</option>
+                <option value="BA">Bahia (BA)</option>
+                <option value="GO">Goiás (GO)</option>
+                <option value="MT">Mato Grosso (MT)</option>
+                <option value="MS">Mato Grosso do Sul (MS)</option>
+                <option value="CE">Ceará (CE)</option>
+                <option value="PE">Pernambuco (PE)</option>
+                <option value="DF">Distrito Federal (DF)</option>
+                <option value="AM">Amazonas (AM)</option>
+                <option value="PA">Pará (PA)</option>
+                <option value="ES">Espírito Santo (ES)</option>
+                <option value="RN">Rio Grande do Norte (RN)</option>
+                <option value="PB">Paraíba (PB)</option>
+                <option value="AL">Alagoas (AL)</option>
+                <option value="SE">Sergipe (SE)</option>
+                <option value="PI">Piauí (PI)</option>
+                <option value="MA">Maranhão (MA)</option>
+                <option value="TO">Tocantins (TO)</option>
+                <option value="RO">Rondônia (RO)</option>
+                <option value="AC">Acre (AC)</option>
+                <option value="AP">Amapá (AP)</option>
+                <option value="RR">Roraima (RR)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Cidade Base *</label>
+              <input type="text" id="pCidade" required placeholder="Ex: Campinas" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100">
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-1">Código ANAC / SISANT</label>
+              <input type="text" id="pAnac" placeholder="PP-123456789" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100">
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Drones / Equipamentos (separados por vírgula) *</label>
+            <input type="text" id="pDrones" required placeholder="Ex: DJI Mavic 3 Enterprise, Matrice 350 RTK" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100">
+          </div>
+
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Especialidades Técnicas</label>
+            <div class="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="pSpec" value="Topografia & LiDAR" checked class="accent-cyan-500"> Topografia & LiDAR</label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="pSpec" value="Câmera 360° & Tour Virtual" checked class="accent-cyan-500"> 🔄 Câmera 360° & Tour</label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="pSpec" value="Timelapse de Obras" checked class="accent-cyan-500"> ⏱️ Timelapse Obras</label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="pSpec" value="Inspeção Eólica & Solar" class="accent-cyan-500"> Eólica & Solar</label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="pSpec" value="Termografia Industrial" class="accent-cyan-500"> Termografia</label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="pSpec" value="Construção & BIM" class="accent-cyan-500"> Construção & BIM</label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="pSpec" value="Transmissão ao Vivo" class="accent-cyan-500"> Transmissão Live</label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" name="pSpec" value="Pulverização Agrícola" class="accent-cyan-500"> Agro & Pulverização</label>
+            </div>
+          </div>
+
+          <!-- Redes Sociais do Piloto (Instagram, Threads, LinkedIn, Facebook) -->
+          <div class="space-y-2 pt-2 border-t border-slate-800/80">
+            <span class="text-[10px] font-bold text-cyan-400 uppercase tracking-wider block">Redes Sociais & Portfólio</span>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">📸 Instagram (@usuario)</label>
+                <input type="text" id="pInstagram" placeholder="ex: seu.perfil" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-slate-100 text-xs">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">🧵 Threads (@usuario - Meta)</label>
+                <input type="text" id="pThreads" placeholder="ex: seu.perfil" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-slate-100 text-xs">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">💼 LinkedIn (perfil)</label>
+                <input type="text" id="pLinkedin" placeholder="ex: seu-nome-piloto" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-slate-100 text-xs">
+              </div>
+              <div>
+                <label class="text-[10px] text-slate-400 block mb-0.5">📘 Facebook (página/perfil)</label>
+                <input type="text" id="pFacebook" placeholder="ex: suapagina" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-slate-100 text-xs">
+              </div>
+            </div>
+            <div>
+              <label class="text-[10px] text-slate-400 block mb-0.5">🖼️ Link da Foto de Perfil / Fotos de Amostra (URL)</label>
+              <input type="url" id="pFoto" placeholder="https://exemplo.com/sua-foto.jpg" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-slate-100 text-xs">
+            </div>
+          </div>
+
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Diária Média Estimada (R$)</label>
+            <input type="number" id="pPreco" placeholder="1800" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-slate-100">
+          </div>
+
+          <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 active:scale-95 transition">
+            Concluir Cadastro e Ativar no Radar
+          </button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= BOTTOM NAVIGATION BAR (5 ABAS) ================= -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" id="btnTabExplorar" onclick="switchNavTab('tabExplorar', this)">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <span class="nav-label">Explorar</span>
+    </div>
+
+    <div class="nav-item" id="btnTabLive" onclick="switchNavTab('tabLive', this)">
+      <div class="relative">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2"/></svg>
+        <span class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+      </div>
+      <span class="nav-label">Ao Vivo</span>
+    </div>
+
+    <div class="nav-item" id="btnTabCockpit" onclick="switchNavTab('tabCockpit', this)">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07 19.07 4.93"/></svg>
+      <span class="nav-label">Despacho</span>
+    </div>
+
+    <div class="nav-item" id="btnTabVagas" onclick="switchNavTab('tabVagas', this)">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="7" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <span class="nav-label">Missões</span>
+    </div>
+
+    <div class="nav-item" id="btnTabCadastro" onclick="switchNavTab('tabCadastro', this)">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="nav-label">Sou Piloto</span>
+    </div>
+  </nav>
+
+  <!-- ================= MODAL MAPA TÁTICO BRASIL ================= -->
+  <div id="mapModal" class="fixed inset-0 z-[60] bg-black/85 backdrop-blur-md hidden flex-col p-4 animate-fade-in" style="display:none">
+    <div class="flex items-center justify-between pb-3">
+      <div>
+        <h3 class="text-sm font-bold text-white">Radar Pan-Americano de Pilotos (Américas)</h3>
+        <p class="text-[10px] text-slate-400">América do Sul, América Central e América do Norte (Satélite HD)</p>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <button onclick="setMapLayer('satellite')" id="btnLayerSat" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-cyan-500 text-slate-950 transition active:scale-95 shadow-sm">
+          🛰️ Satélite HD
+        </button>
+        <button onclick="setMapLayer('dark')" id="btnLayerDark" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 border border-slate-700 text-slate-300 transition active:scale-95">
+          🌙 Dark
+        </button>
+        <button onclick="toggleMapModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center font-bold text-sm ml-1">✕</button>
+      </div>
+    </div>
+    <div id="tacticalMap" class="flex-1 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl"></div>
+  </div>
+
+  <!-- ================= MODAL GARANTIA PIX SEGURO / ESCROW ================= -->
+  <div id="escrowModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-3 animate-fade-in">
+    <div class="bg-slate-900 border border-cyan-500/40 rounded-2xl w-full max-w-sm p-4 space-y-3.5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-base">🛡️</span>
+          <div>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Contrato com Garantia DroneHub</h3>
+            <p class="text-[9px] text-cyan-400 font-mono">CUSTÓDIA PROTEGIDA VIA PIX</p>
+          </div>
+        </div>
+        <button onclick="closeEscrowModal()" class="text-slate-400 font-bold text-sm">✕</button>
+      </div>
+
+      <!-- Resumo do Piloto & Missão -->
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5">
+        <div class="flex justify-between">
+          <span class="text-slate-400">Piloto Credenciado:</span>
+          <span class="font-bold text-white" id="escrowPilotName">Lucas Andrade</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Valor da Missão:</span>
+          <span class="font-mono font-bold text-emerald-400" id="escrowValMission">R$ 2.200,00</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-400">Taxa de Custódia DroneHub:</span>
+          <span class="font-mono text-cyan-400 font-bold" id="escrowFeeText">R$ 66,00 (3%)</span>
+        </div>
+        <div class="border-t border-slate-800 pt-1.5 flex justify-between font-bold">
+          <span class="text-white">Total Protegido em Custódia:</span>
+          <span class="font-mono text-emerald-400 text-sm" id="escrowValTotal">R$ 2.266,00</span>
+        </div>
+      </div>
+
+      <!-- Barra de Progresso da Garantia -->
+      <div class="space-y-1">
+        <span class="text-[10px] text-slate-400 uppercase font-mono block">Status da Missão em Tempo Real:</span>
+        <div class="grid grid-cols-3 gap-1.5 text-center text-[9px] font-mono font-bold">
+          <div class="bg-emerald-950 text-emerald-300 border border-emerald-700 py-1 rounded" id="stepPix">1. PIX Custódia</div>
+          <div class="bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded" id="stepVoo">2. Execução Voo</div>
+          <div class="bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded" id="stepAprov">3. Aprovação Final</div>
+        </div>
+      </div>
+
+      <!-- QR Code PIX e Chave Copia e Cola -->
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center space-y-2">
+        <div class="inline-block p-2 bg-white rounded-xl shadow-md">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=00020126580014br.gov.bcb.pix0136dronehub-escrow-garantia-segura5204000053039865802BR" class="w-24 h-24" alt="QR Code PIX">
+        </div>
+        <p class="text-[10px] text-slate-400">Escaneie com o app do seu banco ou use a chave abaixo:</p>
+        <div class="flex gap-1.5">
+          <input type="text" readonly value="pix.garantia@dronehub.com.br" id="pixKeyInput" class="w-full bg-slate-900 border border-slate-800 text-slate-300 text-[10px] font-mono rounded-lg px-2 py-1.5 text-center">
+          <button onclick="copyPixKey()" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-[10px] font-bold px-2.5 py-1.5 rounded-lg active:scale-95 whitespace-nowrap">
+            Copiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Botão para Simular Aprovação da Entrega e Liberação -->
+      <button onclick="advanceEscrowDemo()" id="btnAdvanceEscrow" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-bold text-xs active:scale-95 transition shadow-lg shadow-emerald-500/20">
+        Simular: Cliente Aprova Dados e Libera R$
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL EDUCATIVO: ÍNDICE KP & PDOP ================= -->
+  <div id="kpPdopModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-3 animate-fade-in">
+    <div class="bg-slate-900 border border-cyan-500/50 rounded-2xl w-full max-w-md p-4 space-y-3.5 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🛰️</span>
+          <div>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider">Clima Espacial & Geometria GNSS</h3>
+            <p class="text-[9px] text-slate-400">Guia Técnico de Segurança de Voo para Pilotos</p>
+          </div>
+        </div>
+        <button onclick="closeKpPdopModal()" class="text-slate-400 hover:text-white font-bold text-sm">✕</button>
+      </div>
+
+      <!-- Abas Internas: KP vs PDOP -->
+      <div class="flex gap-2">
+        <button onclick="switchKpTab('kp')" id="btnTabModalKp" class="flex-1 py-1.5 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950 transition active:scale-95">
+          ☀️ Índice Solar (KP)
+        </button>
+        <button onclick="switchKpTab('pdop')" id="btnTabModalPdop" class="flex-1 py-1.5 rounded-xl text-xs font-bold bg-slate-950 border border-slate-800 text-slate-400 transition active:scale-95">
+          🛰️ PDOP & Satélites
+        </button>
+      </div>
+
+      <!-- Conteúdo da Aba KP -->
+      <div id="contentModalKp" class="space-y-3 text-xs">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <span class="text-cyan-400 font-bold block text-xs">O que é o Índice KP (0 a 9) da NOAA?</span>
+          <p class="text-slate-300 leading-relaxed text-[11px]">
+            O <b>Índice Planetário Kp</b> é a métrica oficial da <b>NOAA</b> (Agência Espacial e Oceânica dos EUA) que quantifica distúrbios geomagnéticos causados pelo vento solar e ejeções de massa coronal que atingem o campo magnético da Terra.
+          </p>
+        </div>
+
+        <div class="space-y-1.5 text-[11px]">
+          <span class="text-white font-bold block">Por que o KP alto é perigoso para o drone?</span>
+          <div class="bg-slate-950/80 p-2.5 rounded-lg border border-slate-800 space-y-1 text-slate-300">
+            <div class="flex items-start gap-1.5">
+              <span class="text-rose-400 font-bold">1.</span>
+              <span><b>Distorção do Sinal GPS:</b> Partículas solares ionizam a camada F2 da atmosfera, alterando a velocidade de propagação do sinal dos satélites e gerando erros de metros na posição calculada.</span>
+            </div>
+            <div class="flex items-start gap-1.5">
+              <span class="text-rose-400 font-bold">2.</span>
+              <span><b>Perda de Fix no RTK:</b> Em mapeamentos com RTK, o receptor não consegue fixar ambiguidades (perda da precisão centimétrica).</span>
+            </div>
+            <div class="flex items-start gap-1.5">
+              <span class="text-rose-400 font-bold">3.</span>
+              <span><b>Risco de Flyaway:</b> A bússola magnética interna entra em conflito com o vetor de GPS distorcido. A controladora pode desarmar o modo de posição e o drone sair voando com o vento.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela de Decisão KP -->
+        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-1.5 text-[10px] font-mono">
+          <div class="flex justify-between items-center text-emerald-400 font-bold">
+            <span>KP 0 a 3: Calmo (Seguro)</span>
+            <span class="bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">VOO AUTORIZADO</span>
+          </div>
+          <div class="flex justify-between items-center text-amber-400 font-bold">
+            <span>KP 4: Moderado</span>
+            <span class="bg-amber-950 px-1.5 py-0.5 rounded border border-amber-800">ATENÇÃO REDOBRADA</span>
+          </div>
+          <div class="flex justify-between items-center text-rose-400 font-bold">
+            <span>KP 5 a 9: Tempestade Solar G1-G5</span>
+            <span class="bg-rose-950 px-1.5 py-0.5 rounded border border-rose-800">NO-GO / CRÍTICO</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Conteúdo da Aba PDOP -->
+      <div id="contentModalPdop" class="space-y-3 text-xs hidden">
+        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+          <span class="text-cyan-400 font-bold block text-xs">O que é PDOP (Positional Dilution of Precision)?</span>
+          <p class="text-slate-300 leading-relaxed text-[11px]">
+            O <b>PDOP</b> é o valor matemático que expressa a qualidade da <b>geometria tridimensional dos satélites</b> visíveis no céu. Quanto mais espalhados em diferentes ângulos da abóbada celeste os satélites estiverem, menor será o valor de PDOP e maior a precisão do drone.
+          </p>
+        </div>
+
+        <div class="space-y-1.5 text-[11px]">
+          <span class="text-white font-bold block">Critérios Operacionais de PDOP:</span>
+          <div class="bg-slate-950/80 p-2.5 rounded-lg border border-slate-800 space-y-1.5 text-slate-300 text-[10px] font-mono">
+            <div class="flex justify-between items-center text-emerald-400">
+              <span>PDOP &lt; 2.0 (Excelente):</span>
+              <span class="font-bold">Precisão Centimétrica RTK Ideal</span>
+            </div>
+            <div class="flex justify-between items-center text-cyan-400">
+              <span>PDOP 2.0 a 3.0 (Bom):</span>
+              <span class="font-bold">Apropriado para Inspeções Visuais</span>
+            </div>
+            <div class="flex justify-between items-center text-amber-400">
+              <span>PDOP 3.0 a 5.0 (Pobre):</span>
+              <span class="font-bold">Erro Métrico, Não recomendado RTK</span>
+            </div>
+            <div class="flex justify-between items-center text-rose-400">
+              <span>PDOP &gt; 5.0 (Inaceitável):</span>
+              <span class="font-bold">Satélites alinhados ou bloqueados</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="closeKpPdopModal()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition">
+        Entendido, Fechar Guia
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL TERMO DE ASSUNÇÃO DE RISCO (WAIVER / SAFE HARBOR) ================= -->
+  <div id="riskWaiverModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-3 animate-fade-in">
+    <div class="bg-slate-900 border-2 border-rose-500/80 rounded-2xl w-full max-w-md p-4 space-y-3.5 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">⚠️</span>
+          <div>
+            <h3 class="text-xs font-black text-rose-300 uppercase tracking-wider">Termo de Assunção de Responsabilidade</h3>
+            <p class="text-[9px] text-slate-400">Operação em Condições Meteorológicas/Solares NO-GO</p>
+          </div>
+        </div>
+        <button onclick="closeRiskWaiverModal()" class="text-slate-400 hover:text-white font-bold text-sm">✕</button>
+      </div>
+
+      <!-- Texto Jurídico Oficial de Safe Harbor -->
+      <div class="bg-slate-950 p-3 rounded-xl border border-rose-900/50 space-y-2 text-xs">
+        <span class="text-[10px] font-mono text-rose-400 font-bold block uppercase">Declaração Operacional & Isenção de Responsabilidade:</span>
+        <div class="text-slate-300 text-[11px] leading-relaxed space-y-1.5 max-h-36 overflow-y-auto pr-1">
+          <p>
+            <b>1. CIÊNCIA DOS RISCOS:</b> O piloto abaixo qualificado declara ter sido expressamente notificado pelo sistema DroneHub sobre a existência de parâmetros meteorológicos e/ou espaciais adversos (vento acima dos limites recomendados e/ou tempestade solar com índice KP ≥ 5), os quais desaconselham a decolagem.
+          </p>
+          <p>
+            <b>2. ASSUNÇÃO INTEGRAL DE CULPA E RISCO:</b> Ao optar conscientemente por executar a decolagem, o piloto declara possuir capacidade técnica para pilotagem em modo manual (ATTI), assumindo de forma pessoal, integral e irrevogável toda a responsabilidade civil, criminal e administrativa por eventuais acidentes, colisões, danos materiais a terceiros, lesões corporais, flyaways ou perda do equipamento (fundamentado nos Arts. 186 e 927 do Código Civil Brasileiro e RBAC-E 94 ANAC).
+          </p>
+          <p>
+            <b>3. ISENÇÃO TOTAL DA PLATAFORMA:</b> O operador isenta a plataforma DroneHub de qualquer corresponsabilidade solidária ou subsidiária decorrente da decisão autônoma e unilateral de voo.
+          </p>
+        </div>
+      </div>
+
+      <!-- Formulário de Aceite Digital do Piloto -->
+      <form onsubmit="handleRiskWaiverSubmit(event); return false;" class="space-y-2.5 text-xs">
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-0.5">Nome Completo do Piloto em Comando:</label>
+          <input type="text" id="waiverPilotName" required value="Lucas Andrade" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl p-2 focus:border-rose-500">
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-0.5">Registro do Piloto (ANAC / FAA / DGAC):</label>
+          <input type="text" id="waiverPilotReg" required value="PP-892144702" class="w-full bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl p-2 focus:border-rose-500">
+        </div>
+        
+        <label class="flex items-start gap-2 p-2 rounded-xl bg-rose-950/40 border border-rose-800/60 cursor-pointer">
+          <input type="checkbox" id="waiverCheckbox" required class="accent-rose-500 mt-0.5">
+          <span class="text-[10px] text-rose-200 leading-tight">
+            Li, compreendi os riscos de flyaway/queda e assumo 100% da responsabilidade pela operação em modo de risco, isentando a DroneHub.
+          </span>
+        </label>
+
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold text-xs shadow-lg shadow-rose-950/80 active:scale-95 transition">
+          ✍️ Assinar Termo Digitalmente & Liberar Voo
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL CENTRAL: COPILOTO IA DE ESPAÇO AÉREO PAN-AMERICANO ================= -->
+  <div id="aeroAIModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-3 animate-fade-in">
+    <div class="bg-slate-900 border border-cyan-500/50 rounded-2xl w-full max-w-lg p-4 space-y-3 shadow-2xl flex flex-col h-[85vh]">
+      <!-- Cabeçalho da IA -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-base">
+            🤖
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-xs font-bold text-white uppercase tracking-wider">AeroAI • Copiloto Pan-Americano</h3>
+              <span class="text-[8px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700 px-1 rounded font-bold">SISTEMA ATIVO</span>
+            </div>
+            <p class="text-[9px] text-cyan-400">Autorizações, Legislações das Américas, KP e Segurança</p>
+          </div>
+        </div>
+        <button onclick="closeAeroAIModal()" class="text-slate-400 hover:text-white font-bold text-sm">✕</button>
+      </div>
+
+      <!-- Barra de Atalhos Rápidos por País / Assunto -->
+      <div class="flex gap-1.5 overflow-x-auto pb-1 text-[10px] font-semibold">
+        <button onclick="askAeroAI('Quais as regras do Brasil (DECEA, SARPAS, ANAC, Seguro RETA)?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-slate-300 rounded-lg whitespace-nowrap active:scale-95">🇧🇷 Brasil (SARPAS)</button>
+        <button onclick="askAeroAI('Sou do Brasil e vou voar no Canadá. Quais as regras da Transport Canada?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-slate-300 rounded-lg whitespace-nowrap active:scale-95">🇨🇦 Canadá (Regras)</button>
+        <button onclick="askAeroAI('Quais as regras da FAA para voar comercialmente nos EUA (Part 107 e LAANC)?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-slate-300 rounded-lg whitespace-nowrap active:scale-95">🇺🇸 EUA (FAA LAANC)</button>
+        <button onclick="askAeroAI('Quais são as regras para operar drone no Equador (DGAC RDAC 101)?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-slate-300 rounded-lg whitespace-nowrap active:scale-95">🇪🇨 Equador (DGAC)</button>
+        <button onclick="askAeroAI('Quais as regras no México (AFAC NOM-107)?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-slate-300 rounded-lg whitespace-nowrap active:scale-95">🇲🇽 México (AFAC)</button>
+        <button onclick="askAeroAI('Quais as regras na Colômbia (Aerocivil RAC 100)?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-slate-300 rounded-lg whitespace-nowrap active:scale-95">🇨🇴 Colômbia (RAC 100)</button>
+        <button onclick="askAeroAI('Quais as regras na Argentina (ANAC Res. 880)?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-slate-300 rounded-lg whitespace-nowrap active:scale-95">🇦🇷 Argentina (ANAC)</button>
+        <button onclick="askAeroAI('Quais as regras no Chile (DGAC DAN 151)?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-slate-300 rounded-lg whitespace-nowrap active:scale-95">🇨🇱 Chile (DGAC)</button>
+        <button onclick="askAeroAI('Quais as regras no Peru (DGAC NTC 001)?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-slate-300 rounded-lg whitespace-nowrap active:scale-95">🇵🇪 Peru (DGAC)</button>
+        <button onclick="askAeroAI('O que é o Índice KP e por que voar com KP acima de 5 causa flyaway?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-amber-300 rounded-lg whitespace-nowrap active:scale-95">☀️ O que é KP Solar?</button>
+        <button onclick="askAeroAI('O que é PDOP e qual o valor ideal para topografia com RTK?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-cyan-300 rounded-lg whitespace-nowrap active:scale-95">🛰️ O que é PDOP?</button>
+        <button onclick="askAeroAI('Como funciona a bússola giroscópica e a orientação magnética no drone?')" class="px-2.5 py-1 bg-slate-950 border border-slate-800 hover:border-cyan-500 text-emerald-300 rounded-lg whitespace-nowrap active:scale-95">🧭 Bússola & Orientação</button>
+      </div>
+
+      <!-- Feed de Chat da IA -->
+      <div id="aeroAIChatFeed" class="flex-1 overflow-y-auto space-y-3 p-2 bg-slate-950 rounded-xl border border-slate-800 text-xs">
+        <div class="bg-cyan-950/40 border border-cyan-800/40 p-2.5 rounded-xl space-y-1">
+          <div class="flex items-center gap-1.5 font-bold text-cyan-400 font-mono text-[11px]">
+            <span>🤖 AeroAI Copilot:</span>
+          </div>
+          <p class="text-slate-200 text-[11px] leading-relaxed">
+            Olá comandante! Sou o seu <b>Copiloto de Espaço Aéreo e Conformidade Regulatória Pan-Americana</b>.
+          </p>
+          <p class="text-slate-400 text-[10px]">
+            Posso tirar dúvidas sobre autorizações de voo (SARPAS no Brasil, FAA nos EUA, Transport Canada, DGAC Equador/Chile/Peru), exigência de Seguro RETA, limites de teto AGL, distâncias de aeroportos e riscos de clima solar (KP Index e PDOP).
+          </p>
+        </div>
+      </div>
+
+      <!-- Caixa de Pergunta -->
+      <form onsubmit="handleAeroAISubmit(event)" class="flex gap-2 pt-1">
+        <input type="text" id="aeroAIInput" placeholder="Ex: Sou do Brasil e vou voar no Canadá, quais as regras?" 
+               class="flex-1 bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-cyan-500">
+        <button type="submit" class="bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs transition active:scale-95">
+          Perguntar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL GALERIA DE FOTOS, CÂMERA 360° & TIMELAPSE ================= -->
+  <div id="portfolioModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-3 animate-fade-in">
+    <div class="bg-slate-900 border border-cyan-500/50 rounded-2xl w-full max-w-lg p-4 space-y-3.5 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <!-- Cabeçalho do Modal -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div class="flex items-center gap-2.5">
+          <img id="portPilotImg" src="" class="w-10 h-10 rounded-xl object-cover border border-cyan-400/50">
+          <div>
+            <h3 class="text-xs font-bold text-white uppercase tracking-wider" id="portPilotName">Portfólio do Piloto</h3>
+            <p class="text-[10px] text-cyan-400 font-mono" id="portPilotLocation">📍 Cidade - UF</p>
+          </div>
+        </div>
+        <button onclick="closePortfolioModal()" class="text-slate-400 hover:text-white font-bold text-sm">✕</button>
+      </div>
+
+      <!-- Abas de Tipo de Trabalho -->
+      <div class="flex gap-1.5 text-[11px] font-semibold">
+        <button onclick="switchPortTab('360')" id="btnPortTab360" class="flex-1 py-1.5 rounded-xl bg-cyan-500 text-slate-950 font-bold transition active:scale-95 shadow-sm">
+          🔄 Câmera 360°
+        </button>
+        <button onclick="switchPortTab('timelapse')" id="btnPortTabTimelapse" class="flex-1 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 font-bold transition active:scale-95">
+          ⏱️ Timelapse Obras
+        </button>
+        <button onclick="switchPortTab('fotos')" id="btnPortTabFotos" class="flex-1 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 font-bold transition active:scale-95">
+          📸 Fotos Aéreas 4K
+        </button>
+      </div>
+
+      <!-- Conteúdo da Aba 360° (Simulador Panorâmico Interativo) -->
+      <div id="portContent360" class="space-y-2.5">
+        <div class="relative w-full aspect-video rounded-xl overflow-hidden border border-cyan-500/40 bg-slate-950 shadow-inner group">
+          <img id="port360Image" src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1000&auto=format&fit=crop" 
+               class="w-full h-full object-cover transition-transform duration-700 ease-out" style="transform: scale(1.15) translateX(0px);">
+          
+          <!-- Badge e Overlay 360° -->
+          <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-lg border border-cyan-500/50 flex items-center gap-1.5 font-mono text-[10px] text-cyan-300 font-bold">
+            <span class="animate-spin text-xs">🔄</span>
+            <span>PANORAMA ESFÉRICO 360°</span>
+          </div>
+
+          <!-- Controles de Giro Panorâmico -->
+          <div class="absolute bottom-2.5 inset-x-2.5 flex items-center justify-between bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs">
+            <button onclick="pan360(-30)" class="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-white font-bold transition active:scale-95">◀ Girar Esquerda</button>
+            <span class="text-[10px] text-slate-400 font-mono">Arraste ou Gire</span>
+            <button onclick="pan360(30)" class="px-2 py-1 rounded bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-white font-bold transition active:scale-95">Girar Direita ▶</button>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          <b>Tour Virtual 360° Imobiliário & Inspeção:</b> Imagens aéreas esféricas em 8K com giroscópio integrado para incorporadoras, construtoras e mapeamento de patrimônio.
+        </p>
+      </div>
+
+      <!-- Conteúdo da Aba Timelapse (Evolução Temporal de Obras) -->
+      <div id="portContentTimelapse" class="space-y-2.5 hidden">
+        <div class="relative w-full aspect-video rounded-xl overflow-hidden border border-amber-500/40 bg-slate-950 shadow-inner">
+          <img id="portTimelapseImg" src="https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=1000&auto=format&fit=crop" 
+               class="w-full h-full object-cover transition-opacity duration-300">
+
+          <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-lg border border-amber-500/50 flex items-center gap-1.5 font-mono text-[10px] text-amber-300 font-bold">
+            <span>⏱️ TIMELAPSE DE CONSTRUÇÃO</span>
+          </div>
+
+          <!-- Linha do Tempo / Seletor de Fases da Obra -->
+          <div class="absolute bottom-2.5 inset-x-2.5 bg-black/85 backdrop-blur-md px-2.5 py-1.5 rounded-xl border border-white/10 flex items-center justify-between text-[10px] font-mono">
+            <button onclick="setTimelapsePhase(1)" id="btnTlPhase1" class="px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-bold">Fase 1: Terraplenagem</button>
+            <button onclick="setTimelapsePhase(2)" id="btnTlPhase2" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white">Fase 2: Estrutura</button>
+            <button onclick="setTimelapsePhase(3)" id="btnTlPhase3" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white">Fase 3: Acabamento</button>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          <b>Acompanhamento Periódico de Obras (Timelapse):</b> Voos programados com waypoints milimétricos repetíveis para registrar a evolução cronológica completa da construção.
+        </p>
+      </div>
+
+      <!-- Conteúdo da Aba Fotos Aéreas -->
+      <div id="portContentFotos" class="space-y-2.5 hidden">
+        <div class="grid grid-cols-2 gap-2">
+          <img src="https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800">
+          <img src="https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800">
+          <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800">
+          <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800">
+        </div>
+        <p class="text-[11px] text-slate-300 leading-relaxed">
+          Fotografias ortorretificadas, inspeções termográficas e imagens publicitárias em alta resolução captadas com sensores full-frame e lentes prime.
+        </p>
+      </div>
+
+      <!-- Redes Sociais do Piloto em Destaque -->
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Redes Sociais & Contato Oficial do Piloto:</span>
+        <div class="flex flex-wrap gap-2 text-xs" id="portSocialLinks">
+          <!-- Inserido dinamicamente via JS -->
+        </div>
+      </div>
+
+      <!-- Botão de Ação -->
+      <div class="flex gap-2">
+        <button onclick="closePortfolioModal()" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition">
+          Fechar
+        </button>
+        <a id="portWhatsappBtn" href="#" target="_blank" class="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold text-center transition shadow-lg shadow-emerald-950/40">
+          Chamar no WhatsApp
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL SEGURO RETA AERONÁUTICO OBRIGATÓRIO ================= -->
+  <div id="retaModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-3 animate-fade-in">
+    <div class="bg-slate-900 border border-cyan-500/50 rounded-2xl w-full max-w-sm p-4 space-y-3.5 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🛡️</span>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Seguro RETA Obrigatório</h3>
+              <span class="text-[9px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-700 px-1 rounded font-bold">RBAC-E 94</span>
+            </div>
+            <p class="text-[9px] text-slate-400">Exigência Legal ANAC / DECEA para Voos Comerciais</p>
+          </div>
+        </div>
+        <button onclick="closeRetaModal()" class="text-slate-400 font-bold text-sm">✕</button>
+      </div>
+
+      <!-- Explicação e Benefícios -->
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2 text-xs">
+        <p class="text-slate-300 text-[11px] leading-relaxed">
+          O <b>Seguro RETA</b> (Responsabilidade do Explorador e Transportador Aéreo) é obrigatório por lei para operar comercialmente no Brasil e América do Sul, cobrindo danos materiais e corporais a terceiros no solo.
+        </p>
+        <div class="border-t border-slate-800/80 pt-2 space-y-1 text-[10px] text-slate-400">
+          <div class="flex items-center gap-1.5 text-emerald-400 font-medium">
+            <span>✓</span> Cobertura de até R$ 1.500.000,00 por sinistro
+          </div>
+          <div class="flex items-center gap-1.5 text-emerald-400 font-medium">
+            <span>✓</span> Emissão de Apólice com Certificado Digital em 15 minutos
+          </div>
+          <div class="flex items-center gap-1.5 text-emerald-400 font-medium">
+            <span>✓</span> Válido para solicitação no DECEA / SARPAS e auditoria de construtoras
+          </div>
+        </div>
+      </div>
+
+      <!-- Seletor de Categoria do Drone -->
+      <div class="space-y-2 text-xs">
+        <span class="text-[10px] text-slate-400 uppercase font-mono block">Escolha a Classe da sua Aeronave:</span>
+        <div class="grid grid-cols-2 gap-2">
+          <div onclick="selectRetaPlan('classe3', this)" id="planReta3" class="p-2.5 rounded-xl border border-cyan-500 bg-cyan-950/30 cursor-pointer transition">
+            <span class="text-[10px] font-bold text-cyan-400 block">CLASSE 3 (Até 25kg)</span>
+            <span class="text-xs text-white font-bold block mt-0.5">Mavic, Matrice, Mini</span>
+            <span class="text-xs font-mono font-bold text-emerald-400 block mt-1">R$ 420,00<span class="text-[9px] text-slate-400">/ano</span></span>
+          </div>
+          <div onclick="selectRetaPlan('classe2', this)" id="planReta2" class="p-2.5 rounded-xl border border-slate-800 bg-slate-950 cursor-pointer transition">
+            <span class="text-[10px] font-bold text-slate-400 block">CLASSE 2 (25kg-150kg)</span>
+            <span class="text-xs text-slate-200 font-bold block mt-0.5">Agras T40/T50 Agro</span>
+            <span class="text-xs font-mono font-bold text-emerald-400 block mt-1">R$ 890,00<span class="text-[9px] text-slate-400">/ano</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botão de Contratação Expressa -->
+      <a href="https://wa.me/5511998765432?text=Ol%C3%A1!%20Gostaria%20de%20emitir%20o%20Seguro%20RETA%20obrigat%C3%B3rio%20para%20meu%20drone%20pelo%20DroneHub%20Brasil." 
+         target="_blank" 
+         class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/20 active:scale-95 transition">
+        <span>Emitir Apólice Digital via WhatsApp</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- ================= MODAL LINK RTMP / OBS EXTERNO ================= -->
+  <div id="streamInputModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-3 animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-xs font-bold text-white uppercase tracking-wider">Conectar Transmissão do Drone</h3>
+        <button onclick="toggleStreamInputModal()" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <p class="text-[11px] text-slate-400">Cole o link de transmissão gerado pelo <b>DJI Pilot 2 / RC Pro</b>, <b>OBS Studio</b> ou <b>LiveU</b> (RTMP, HLS .m3u8 ou WebRTC):</p>
+      <input type="text" id="streamUrlInput" placeholder="rtmp://live.dronehub.com.br/hls/drone_01" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 font-mono">
+      <div class="flex gap-2">
+        <button onclick="applyExternalStream()" class="flex-1 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs active:scale-95">
+          Conectar Feed
+        </button>
+        <button onclick="toggleStreamInputModal()" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL PUBLICAR MISSÃO ================= -->
+  <div id="publishDemandModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-end sm:items-center justify-center p-3 animate-fade-in">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-4 space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white">Publicar Demanda / Vaga</h3>
+        <button onclick="closePublishDemandModal()" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <form onsubmit="handleDemandSubmit(event)" class="space-y-2.5 text-xs">
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-1">Título da Missão *</label>
+          <input type="text" id="dTitulo" required placeholder="Ex: Mapeamento 120ha em Ribeirão Preto" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Cidade / UF *</label>
+            <input type="text" id="dLocal" required placeholder="Campinas - SP" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100">
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Orçamento Médio (R$)</label>
+            <input type="text" id="dOrcamento" placeholder="A combinar" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100">
+          </div>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-1">Categoria de Serviço</label>
+          <select id="dCategoria" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100">
+            <option>Topografia & LiDAR</option>
+            <option>Inspeção Eólica & Solar</option>
+            <option>Termografia Industrial</option>
+            <option>Construção & BIM</option>
+            <option>Transmissão ao Vivo</option>
+            <option>Pulverização Agrícola</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-1">WhatsApp para Propostas *</label>
+          <input type="tel" id="dContato" required placeholder="11999998888" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-slate-100">
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs mt-2">
+          Publicar Vaga no Mural
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<!-- ================= JAVASCRIPT MASTERWORK ================= -->
+<script>
+// ——————————————————————————————————————————————————————————
+// 1. BANCO DE DADOS REGIONAL: AMÉRICA DO SUL & BRASIL
+// ——————————————————————————————————————————————————————————
+const DEFAULT_PILOTS = [
+  // BRASIL (Regiões Estratégicas)
+  { id: "p_sp", nome: "Lucas Andrade", cidade: "São Paulo", uf: "SP", lat: -23.5505, lng: -46.6333, avaliacao: 5.0, avaliacoesTotal: 48, preco: 2200, anac: "PP-892144702", drones: ["DJI Matrice 350 RTK", "Zenmuse L2 LiDAR"], especialidades: ["Timelapse de Obras", "Câmera 360° & Tour Virtual", "Topografia & LiDAR", "Inspeção Eólica & Solar", "Transmissão ao Vivo"], zap: "11998765432", foto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "lucasandrade.drones", "threads": "lucasandrade.drones", "linkedin": "lucas-andrade-piloto", "facebook": "lucasdroneoficial"} },
+  { id: "p_mg", nome: "Carolina Mendes", cidade: "Belo Horizonte", uf: "MG", lat: -19.9167, lng: -43.9345, avaliacao: 4.9, avaliacoesTotal: 34, preco: 1950, anac: "PP-410294811", drones: ["DJI Inspire 3", "Mavic 3 Thermal"], especialidades: ["Timelapse de Obras", "Termografia Industrial", "Construção & BIM"], zap: "31987654321", foto: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "carol.mendes.drones", "threads": "carol.mendes.drones", "linkedin": "carolina-mendes-eng", "facebook": "carolinamendesdrones"} },
+  { id: "p_pr", nome: "Rodrigo 'Fox' Silveira", cidade: "Curitiba", uf: "PR", lat: -25.4284, lng: -49.2733, avaliacao: 5.0, avaliacoesTotal: 62, preco: 2500, anac: "PP-771928340", drones: ["DJI Agras T40", "Mavic 3 Multispectral"], especialidades: ["Câmera 360° & Tour Virtual", "Pulverização Agrícola", "Topografia & LiDAR"], zap: "41991234567", foto: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "foxsilveira.agro", "threads": "foxsilveira.agro", "linkedin": "rodrigo-silveira-agro", "facebook": "foxdronespr"} },
+  { id: "p_rj", nome: "Felipe 'Cine' Castro", cidade: "Rio de Janeiro", uf: "RJ", lat: -22.9068, lng: -43.1729, avaliacao: 4.9, avaliacoesTotal: 41, preco: 2100, anac: "PP-628193821", drones: ["DJI Inspire 3 (X9-8K)", "FPV 7 inch"], especialidades: ["Timelapse de Obras", "Câmera 360° & Tour Virtual", "Drone FPV & Audiovisual", "Transmissão ao Vivo"], zap: "21998877665", foto: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "felipecinedrone", "threads": "felipecinedrone", "linkedin": "felipe-castro-cinema", "facebook": "felipecastroaudiovisual"} },
+  { id: "p_ba", nome: "Marcelo Dias", cidade: "Salvador", uf: "BA", lat: -12.9714, lng: -38.5014, avaliacao: 4.8, avaliacoesTotal: 27, preco: 1800, anac: "PP-192837465", drones: ["Mavic 3 Enterprise", "Matrice 30T"], especialidades: ["Timelapse de Obras", "Inspeção Eólica & Solar", "Topografia & LiDAR"], zap: "71992233445", foto: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "marcelodias.drones", "threads": "marcelodias.drones", "linkedin": "marcelo-dias-topografia", "facebook": "marcelodiasdrones"} },
+  { id: "p_rs", nome: "Guilherme Weber", cidade: "Porto Alegre", uf: "RS", lat: -30.0346, lng: -51.2177, avaliacao: 5.0, avaliacoesTotal: 39, preco: 2300, anac: "PP-554433221", drones: ["DJI Agras T40", "Mavic 3 Thermal"], especialidades: ["Câmera 360° & Tour Virtual", "Pulverização Agrícola", "Termografia Industrial"], zap: "51995544332", foto: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "weberdrones.sul", "threads": "weberdrones.sul", "linkedin": "guilherme-weber-drones", "facebook": "weberdronesrs"} },
+  { id: "p_mt", nome: "Eduardo Camargo", cidade: "Cuiabá", uf: "MT", lat: -15.6014, lng: -56.0979, avaliacao: 4.9, avaliacoesTotal: 44, preco: 2600, anac: "PP-443322118", drones: ["Agras T40", "Zenmuse P1 Fotogrametria"], especialidades: ["Timelapse de Obras", "Pulverização Agrícola", "Topografia & LiDAR"], zap: "65997788990", foto: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "eduardo.camargo.agro", "threads": "eduardo.camargo.agro", "linkedin": "eduardo-camargo-drones", "facebook": "camargodronesmt"} },
+  { id: "p_df", nome: "Cap. André Lima", cidade: "Brasília", uf: "DF", lat: -15.7975, lng: -47.8919, avaliacao: 5.0, avaliacoesTotal: 70, preco: 2700, anac: "PP-990011223", drones: ["Matrice 350 RTK", "LiDAR L2", "Mavic 3T"], especialidades: ["Câmera 360° & Tour Virtual", "Topografia & LiDAR", "Construção & BIM"], zap: "61998811223", foto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "capandrlima.drones", "threads": "capandrlima.drones", "linkedin": "capandrlima-dronepilot", "facebook": "capandrlimadrones"} },
+  { id: "p_am", nome: "Thiago Amazonas", cidade: "Manaus", uf: "AM", lat: -3.1190, lng: -60.0217, avaliacao: 4.8, avaliacoesTotal: 22, preco: 2500, anac: "PP-123987456", drones: ["Matrice 30T", "Mavic 3 Enterprise"], especialidades: ["Câmera 360° & Tour Virtual", "Topografia & LiDAR", "Construção & BIM"], zap: "92991122334", foto: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "thiagoamazonas.drones", "threads": "thiagoamazonas.drones", "linkedin": "thiagoamazonas-dronepilot", "facebook": "thiagoamazonasdrones"} },
+  
+  // 🇺🇸 ESTADOS UNIDOS (USA)
+  { id: "p_us_fl", nome: "Michael 'Aero' Vance", cidade: "Miami, FL", uf: "US_FL", lat: 25.7617, lng: -80.1918, avaliacao: 5.0, avaliacoesTotal: 84, preco: 3200, anac: "FAA Part 107 #482910", drones: ["DJI Inspire 3", "Matrice 350 RTK", "Zenmuse P1"], especialidades: ["Timelapse de Obras", "Câmera 360° & Tour Virtual", "Topografia & LiDAR", "Transmissão ao Vivo", "Drone FPV & Audiovisual"], zap: "13055551234", foto: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "dave.miller.drone", "threads": "dave.miller.drone", "linkedin": "david-miller-dronepilot", "facebook": "davemillerdrones"} },
+  { id: "p_us_tx", nome: "Robert Sterling", cidade: "Houston, TX", uf: "US_TX", lat: 29.7604, lng: -95.3698, avaliacao: 4.9, avaliacoesTotal: 67, preco: 3500, anac: "FAA Part 107 #391820", drones: ["Matrice 300 RTK", "Zenmuse H20N Térmico", "LiDAR L2"], especialidades: ["Timelapse de Obras", "Termografia Industrial", "Inspeção Eólica & Solar"], zap: "17135559876", foto: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "sarah.jenkins.aerial", "threads": "sarah.jenkins.aerial", "linkedin": "sarah-jenkins-drone", "facebook": "sarahjenkinsdrone"} },
+  { id: "p_us_ca", nome: "David Chen", cidade: "Los Angeles, CA", uf: "US_CA", lat: 34.0522, lng: -118.2437, avaliacao: 5.0, avaliacoesTotal: 92, preco: 3800, anac: "FAA Part 107 #910283", drones: ["DJI Inspire 3 (X9-8K)", "RED Komodo Heavy FPV"], especialidades: ["Câmera 360° & Tour Virtual", "Drone FPV & Audiovisual", "Transmissão ao Vivo"], zap: "12135557788", foto: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "davidchen.drones", "threads": "davidchen.drones", "linkedin": "davidchen-dronepilot", "facebook": "davidchendrones"} },
+
+  // 🇲🇽 MÉXICO
+  { id: "p_mx_1", nome: "Carlos Mendoza Garza", cidade: "Monterrey, N.L.", uf: "MX_NL", lat: 25.6866, lng: -100.3161, avaliacao: 4.9, avaliacoesTotal: 51, preco: 2300, anac: "AFAC-MX #7821", drones: ["DJI Matrice 350 RTK", "Mavic 3 Enterprise"], especialidades: ["Câmera 360° & Tour Virtual", "Construção & BIM", "Topografia & LiDAR"], zap: "528181234567", foto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "carlosmendozagarza.drones", "threads": "carlosmendozagarza.drones", "linkedin": "carlosmendozagarza-dronepilot", "facebook": "carlosmendozagarzadrones"} },
+  { id: "p_mx_cdmx", nome: "Valeria Hernandez", cidade: "Cidade do México", uf: "MX_CDMX", lat: 19.4326, lng: -99.1332, avaliacao: 5.0, avaliacoesTotal: 43, preco: 2100, anac: "AFAC-MX #5419", drones: ["DJI Mavic 3 Cine", "Mavic 3 Thermal"], especialidades: ["Câmera 360° & Tour Virtual", "Inspeção Eólica & Solar", "Termografia Industrial"], zap: "525512345678", foto: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "carlos.mendoza.drones", "threads": "carlos.mendoza.drones", "linkedin": "carlos-mendoza-rpas", "facebook": "carlosmendozadrones"} },
+
+  // 🇨🇦 CANADÁ
+  { id: "p_ca_on", nome: "James MacLeod", cidade: "Toronto, ON", uf: "CA_ON", lat: 43.6532, lng: -79.3832, avaliacao: 4.9, avaliacoesTotal: 58, preco: 2900, anac: "Transport Canada #88124", drones: ["Matrice 350 RTK", "Zenmuse L2 LiDAR"], especialidades: ["Timelapse de Obras", "Câmera 360° & Tour Virtual", "Topografia & LiDAR", "Construção & BIM"], zap: "14165553322", foto: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop&crop=faces" , social: {"instagram": "alex.chen.drones", "threads": "alex.chen.drones", "linkedin": "alex-chen-aerial", "facebook": "alexchendronestoronto"} },
+
+  // 🌴 AMÉRICA CENTRAL & CARIBE
+  { id: "p_pa_pty", nome: "Ricardo Arango", cidade: "Cidade do Panamá", uf: "PA", lat: 8.9824, lng: -79.5199, avaliacao: 5.0, avaliacoesTotal: 34, preco: 2400, anac: "AAC-PA #1102", drones: ["Matrice 30T", "Mavic 3 Enterprise"], especialidades: ["Câmera 360° & Tour Virtual", "Inspeção Eólica & Solar", "Topografia & LiDAR"], zap: "50761234567", foto: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "ricardoarango.drones", "threads": "ricardoarango.drones", "linkedin": "ricardoarango-dronepilot", "facebook": "ricardoarangodrones"} },
+  { id: "p_cr_sjo", nome: "Keylor Valverde", cidade: "San José", uf: "CR", lat: 9.9281, lng: -84.0907, avaliacao: 4.8, avaliacoesTotal: 27, preco: 1950, anac: "DGAC-CR #9921", drones: ["Mavic 3 Multispectral", "Inspire 2"], especialidades: ["Timelapse de Obras", "Pulverização Agrícola", "Transmissão ao Vivo"], zap: "50688889999", foto: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "keylorvalverde.drones", "threads": "keylorvalverde.drones", "linkedin": "keylorvalverde-dronepilot", "facebook": "keylorvalverdedrones"} },
+  { id: "p_do_sdq", nome: "Juan Carlos Medina", cidade: "Santo Domingo", uf: "DO", lat: 18.4861, lng: -69.9312, avaliacao: 4.9, avaliacoesTotal: 31, preco: 2200, anac: "IDAC-DO #4410", drones: ["Mavic 3 Cine", "Phantom 4 RTK"], especialidades: ["Câmera 360° & Tour Virtual", "Construção & BIM", "Drone FPV & Audiovisual"], zap: "18095554321", foto: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "juancarlosmedina.drones", "threads": "juancarlosmedina.drones", "linkedin": "juancarlosmedina-dronepilot", "facebook": "juancarlosmedinadrones"} },
+
+  // 🇦🇷 ARGENTINA
+  { id: "p_ar_1", nome: "Gonzalo Morales", cidade: "Buenos Aires", uf: "AR", lat: -34.6037, lng: -58.3816, avaliacao: 5.0, avaliacoesTotal: 38, preco: 2100, anac: "ANAC-AR 9812", drones: ["DJI Matrice 350 RTK", "Zenmuse L2"], especialidades: ["Câmera 360° & Tour Virtual", "Topografia & LiDAR", "Inspeção Eólica & Solar"], zap: "5491122334455", foto: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "gonzalomorales.drones", "threads": "gonzalomorales.drones", "linkedin": "gonzalomorales-dronepilot", "facebook": "gonzalomoralesdrones"} },
+  { id: "p_ar_2", nome: "Facundo Quiroga", cidade: "Córdoba", uf: "AR", lat: -31.4201, lng: -64.1888, avaliacao: 4.9, avaliacoesTotal: 29, preco: 1850, anac: "ANAC-AR 4431", drones: ["DJI Agras T40", "Mavic 3 Multispectral"], especialidades: ["Timelapse de Obras", "Pulverização Agrícola", "Construção & BIM"], zap: "5493519876543", foto: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "facundoquiroga.drones", "threads": "facundoquiroga.drones", "linkedin": "facundoquiroga-dronepilot", "facebook": "facundoquirogadrones"} },
+
+  // 🇨🇱 CHILE
+  { id: "p_cl_1", nome: "Sebastián Valenzuela", cidade: "Santiago", uf: "CL", lat: -33.4489, lng: -70.6693, avaliacao: 5.0, avaliacoesTotal: 45, preco: 2400, anac: "DGAC-CL 5521", drones: ["Matrice 300 RTK", "Zenmuse H20T"], especialidades: ["Timelapse de Obras", "Inspeção Eólica & Solar", "Termografia Industrial"], zap: "56987654321", foto: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "sebastinvalenzuela.drones", "threads": "sebastinvalenzuela.drones", "linkedin": "sebastinvalenzuela-dronepilot", "facebook": "sebastinvalenzueladrones"} },
+  { id: "p_cl_2", nome: "Diego Atacama", cidade: "Antofagasta", uf: "CL", lat: -23.6509, lng: -70.3975, avaliacao: 4.9, avaliacoesTotal: 33, preco: 2800, anac: "DGAC-CL 8891", drones: ["Matrice 350 RTK", "LiDAR L2"], especialidades: ["Câmera 360° & Tour Virtual", "Topografia & LiDAR", "Inspeção Eólica & Solar"], zap: "56991234567", foto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "diegoatacama.drones", "threads": "diegoatacama.drones", "linkedin": "diegoatacama-dronepilot", "facebook": "diegoatacamadrones"} },
+
+  // 🇨🇴 COLÔMBIA
+  { id: "p_co_1", nome: "Alejandro Restrepo", cidade: "Bogotá", uf: "CO", lat: 4.7110, lng: -74.0721, avaliacao: 4.9, avaliacoesTotal: 37, preco: 1900, anac: "Aerocivil CO-320", drones: ["DJI Inspire 3", "Mavic 3 Cine"], especialidades: ["Câmera 360° & Tour Virtual", "Transmissão ao Vivo", "Drone FPV & Audiovisual"], zap: "573109876543", foto: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "alejandrorestrepo.drones", "threads": "alejandrorestrepo.drones", "linkedin": "alejandrorestrepo-dronepilot", "facebook": "alejandrorestrepodrones"} },
+
+  // 🇺🇾 URUGUAI
+  { id: "p_uy_1", nome: "Martín Cavani", cidade: "Montevidéu", uf: "UY", lat: -34.9011, lng: -56.1645, avaliacao: 4.8, avaliacoesTotal: 21, preco: 1950, anac: "DINACIA UY-77", drones: ["Mavic 3 Enterprise", "Phantom 4 RTK"], especialidades: ["Câmera 360° & Tour Virtual", "Topografia & LiDAR", "Construção & BIM"], zap: "59899123456", foto: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "martncavani.drones", "threads": "martncavani.drones", "linkedin": "martncavani-dronepilot", "facebook": "martncavanidrones"} },
+
+  // 🇵🇾 PARAGUAI
+  { id: "p_py_1", nome: "Carlos Benítez", cidade: "Assunção", uf: "PY", lat: -25.2637, lng: -57.5759, avaliacao: 4.9, avaliacoesTotal: 24, preco: 1800, anac: "DINAC PY-412", drones: ["Agras T40", "Matrice 30T"], especialidades: ["Timelapse de Obras", "Pulverização Agrícola", "Inspeção Eólica & Solar"], zap: "595981122334", foto: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "carlosbentez.drones", "threads": "carlosbentez.drones", "linkedin": "carlosbentez-dronepilot", "facebook": "carlosbentezdrones"} },
+
+  // 🇵🇪 PERU
+  { id: "p_pe_int", nome: "Manuel Quispe", cidade: "Lima", uf: "PE_INT", lat: -12.0464, lng: -77.0428, avaliacao: 5.0, avaliacoesTotal: 42, preco: 2300, anac: "DGAC-PE 991", drones: ["Matrice 350 RTK", "LiDAR L2"], especialidades: ["Câmera 360° & Tour Virtual", "Topografia & LiDAR", "Construção & BIM"], zap: "51987654321", foto: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "manuelquispe.drones", "threads": "manuelquispe.drones", "linkedin": "manuelquispe-dronepilot", "facebook": "manuelquispedrones"} },
+
+  // 🇧🇴 BOLÍVIA
+  { id: "p_bo_1", nome: "Jorge Vaca", cidade: "Santa Cruz", uf: "BO", lat: -17.7833, lng: -63.1821, avaliacao: 4.8, avaliacoesTotal: 19, preco: 1750, anac: "DGAC-BO 102", drones: ["DJI Agras T30", "Mavic 3M"], especialidades: ["Câmera 360° & Tour Virtual", "Pulverização Agrícola", "Topografia & LiDAR"], zap: "59170011223", foto: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "jorgevaca.drones", "threads": "jorgevaca.drones", "linkedin": "jorgevaca-dronepilot", "facebook": "jorgevacadrones"} },
+
+  // 🇪🇨 EQUADOR
+  { id: "p_ec_1", nome: "Esteban Cordova", cidade: "Quito", uf: "EC", lat: -0.1807, lng: -78.4678, avaliacao: 4.9, avaliacoesTotal: 25, preco: 2000, anac: "DGAC-EC 664", drones: ["Matrice 30T", "Mavic 3 Thermal"], especialidades: ["Timelapse de Obras", "Termografia Industrial", "Inspeção Eólica & Solar"], zap: "593998877665", foto: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=faces", social: {"instagram": "estebancordova.drones", "threads": "estebancordova.drones", "linkedin": "estebancordova-dronepilot", "facebook": "estebancordovadrones"} }
+];
+
+const DEFAULT_DEMANDS = [
+  {
+    id: "dem_360_1",
+    titulo: "Tour Virtual 360° & Fotografia Aérea de Empreendimento Residencial",
+    local: "Florianópolis, SC (Brasil)",
+    orcamento: "R$ 2.800",
+    categoria: "Câmera 360° & Tour Virtual",
+    contato: "11998765432",
+    data: "Publicado há 1 hora"
+  },
+  {
+    id: "dem_tl_1",
+    titulo: "Acompanhamento em Timelapse de Obra Industrial (Galpão Logístico)",
+    local: "Campinas, SP (Brasil)",
+    orcamento: "R$ 6.500",
+    categoria: "Timelapse de Obras",
+    contato: "11998765432",
+    data: "Publicado há 3 horas"
+  },
+  { id: "d1", titulo: "Inspeção Termográfica de Usina Solar 15MW", local: "Uberlândia - MG (Brasil)", categoria: "Termografia Industrial", orcamento: "R$ 4.500 (2 diárias)", contato: "34991122334", data: "Publicado há 2 horas" },
+  { id: "d2", titulo: "Inspección de Planta Fotovoltaica 40MW", local: "Antofagasta (Chile)", categoria: "Inspeção Eólica & Solar", orcamento: "US$ 1.600", contato: "56991234567", data: "Publicado há 3 horas" },
+  { id: "d3", titulo: "Levantamento Topográfico 80ha para Loteamento", local: "Piracicaba - SP (Brasil)", categoria: "Topografia & LiDAR", orcamento: "R$ 3.800", contato: "19988776655", data: "Publicado há 5 horas" },
+  { id: "d4", titulo: "Mapeo Agrícola Multiespectral de Soja", local: "Córdoba (Argentina)", categoria: "Pulverização Agrícola", orcamento: "US$ 850", contato: "5493519876543", data: "Publicado há 1 dia" }
+];
+
+let pilots = JSON.parse(localStorage.getItem('dh_pilots_v7')) || DEFAULT_PILOTS;
+let demands = JSON.parse(localStorage.getItem('dh_demands_v7')) || DEFAULT_DEMANDS;
+let currentCategory = 'TODAS';
+
+// ——————————————————————————————————————————————————————————
+// 2. RENDERIZAÇÃO DE PILOTOS & GARANTIA PIX ESCROW
+// ——————————————————————————————————————————————————————————
+function renderPilots(data) {
+  const container = document.getElementById('pilotsList');
+  document.getElementById('statPilotsCount').innerText = data.length;
+
+  if (data.length === 0) {
+    container.innerHTML = `
+      <div class="card p-8 text-center text-slate-400 space-y-2">
+        <p class="text-xs">Nenhum piloto encontrado para este filtro.</p>
+        <button onclick="resetFilters()" class="text-xs text-cyan-400 underline font-semibold">Limpar filtros</button>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = data.map(p => `
+    <div class="card p-3.5 space-y-3">
+      <div class="flex items-start gap-3">
+        <img src="${p.foto}" alt="${p.nome}" class="w-12 h-12 rounded-2xl object-cover border border-cyan-500/40 shadow-md">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-bold text-white truncate">${p.nome}</h4>
+            <span class="text-xs font-mono font-bold text-cyan-400">R$ ${p.preco}<span class="text-[9px] text-slate-500">/dia</span></span>
+          </div>
+          <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+            <span>📍 ${p.cidade}, ${p.uf}</span>
+            <span>•</span>
+            <span class="text-amber-400 font-bold">★ ${p.avaliacao}</span>
+            <span class="text-slate-500 text-[10px]">(${p.avaliacoesTotal})</span>
+          </div>
+          <div class="mt-1 flex items-center gap-1.5">
+            <span class="text-[9px] font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded font-bold">
+              ✓ ANAC ${p.anac}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tags de Equipamento & Especialidade -->
+      <div class="flex flex-wrap gap-1">
+        ${p.especialidades.map(e => `
+          <span class="text-[10px] px-2 py-0.5 rounded-md ${e.includes('360') ? 'bg-cyan-950 border-cyan-700/60 text-cyan-300 font-bold' : e.includes('Timelapse') ? 'bg-amber-950 border-amber-700/60 text-amber-300 font-bold' : 'bg-slate-900 border-slate-800 text-slate-300'}">${e}</span>
+        `).join('')}
+      </div>
+
+      <!-- Linha de Redes Sociais do Piloto (Instagram, Threads, LinkedIn, Facebook) -->
+      <div class="flex items-center gap-1.5 pt-1 border-t border-slate-800/80 text-[10px] flex-wrap">
+        <span class="text-slate-500 font-semibold text-[9px] uppercase font-mono">Redes:</span>
+        ${p.social && p.social.instagram ? `
+          <a href="https://instagram.com/${p.social.instagram}" target="_blank" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-pink-950/60 border border-pink-700/60 text-pink-300 font-bold hover:bg-pink-900 transition" title="Instagram @${p.social.instagram}">
+            <span>📸 Insta</span>
+          </a>
+        ` : ''}
+        ${p.social && p.social.threads ? `
+          <a href="https://threads.net/@${p.social.threads}" target="_blank" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-bold hover:border-cyan-500 transition" title="Threads (App da Meta/Instagram) @${p.social.threads}">
+            <span>🧵 Threads</span>
+          </a>
+        ` : ''}
+        ${p.social && p.social.linkedin ? `
+          <a href="https://linkedin.com/in/${p.social.linkedin}" target="_blank" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-950/60 border border-blue-700/60 text-blue-300 font-bold hover:bg-blue-900 transition" title="LinkedIn">
+            <span>💼 LinkedIn</span>
+          </a>
+        ` : ''}
+        ${p.social && p.social.facebook ? `
+          <a href="https://facebook.com/${p.social.facebook}" target="_blank" class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-950/60 border border-indigo-700/60 text-indigo-300 font-bold hover:bg-indigo-900 transition" title="Facebook">
+            <span>📘 Face</span>
+          </a>
+        ` : ''}
+        <button onclick="openPortfolioModal('${p.id}')" class="ml-auto text-[10px] text-cyan-400 hover:text-cyan-300 font-bold flex items-center gap-1 underline active:scale-95 transition">
+          <span>🖼️ Fotos 360° & Portfólio</span>
+        </button>
+      </div>
+
+      <div class="text-[11px] text-slate-400 border-t border-slate-800/80 pt-2 flex items-center justify-between gap-2">
+        <span class="truncate text-[10px] text-slate-500">🛸 ${p.drones[0]}</span>
+        <div class="flex items-center gap-1.5">
+          <button onclick="openEscrowForPilot('${p.nome}', ${p.preco})" class="bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 font-semibold text-[11px] px-2.5 py-1 rounded-xl transition active:scale-95">
+            🛡️ Contratar Seguro
+          </button>
+          <a href="https://wa.me/55${p.zap}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)},%20vi%20seu%20perfil%20no%20DroneHub%20e%20gostaria%20de%20um%20or%C3%A7amento%20para%20C%C3%A2mera%20360%C2%B0%20/%20Timelapse!" 
+             target="_blank" 
+             class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs px-2.5 py-1 rounded-xl transition active:scale-95">
+            WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterPilots() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  const uf = document.getElementById('stateFilter').value;
+
+  const filtered = pilots.filter(p => {
+    const matchQuery = p.nome.toLowerCase().includes(query) ||
+                       p.cidade.toLowerCase().includes(query) ||
+                       p.uf.toLowerCase().includes(query) ||
+                       p.drones.some(d => d.toLowerCase().includes(query));
+    const matchUF = !uf || p.uf === uf || (uf === 'BR_OUTROS' && ['RN','PB','AL','SE','PI','MA','TO','RO','AC','AP','RR'].includes(p.uf));
+    const matchCat = currentCategory === 'TODAS' || p.especialidades.includes(currentCategory);
+    return matchQuery && matchUF && matchCat;
+  });
+
+  renderPilots(filtered);
+}
+
+function selectCategory(cat, btn) {
+  currentCategory = cat;
+  document.querySelectorAll('.category-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterPilots();
+}
+
+function resetFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('stateFilter').value = '';
+  currentCategory = 'TODAS';
+  document.querySelectorAll('.category-chip').forEach((b, i) => {
+    b.classList.toggle('active', i === 0);
+  });
+  renderPilots(pilots);
+}
+
+// ——————————————————————————————————————————————————————————
+// 3. SISTEMA DE GARANTIA PIX SEGURO (ESCROW)
+// ——————————————————————————————————————————————————————————
+let currentEscrowState = 1;
+
+function openEscrowDemo() {
+  openEscrowForPilot("Lucas Andrade", 2200);
+}
+
+function openEscrowForPilot(pilotName, price) {
+  document.getElementById('escrowPilotName').innerText = pilotName;
+  document.getElementById('escrowValMission').innerText = 'R$ ' + price.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+  const fee = price * 0.03; // 3% Taxa de Custódia
+  const total = price + fee;
+  document.getElementById('escrowFeeText').innerText = 'R$ ' + fee.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ' (3%)';
+  document.getElementById('escrowValTotal').innerText = 'R$ ' + total.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+  currentEscrowState = 1;
+  updateEscrowProgress();
+  document.getElementById('escrowModal').classList.remove('hidden');
+}
+
+function closeEscrowModal() {
+  document.getElementById('escrowModal').classList.add('hidden');
+}
+
+function openRetaModal() {
+  document.getElementById('retaModal').classList.remove('hidden');
+}
+
+function closeRetaModal() {
+  document.getElementById('retaModal').classList.add('hidden');
+}
+
+function selectRetaPlan(plan, el) {
+  document.getElementById('planReta3').className = 'p-2.5 rounded-xl border border-slate-800 bg-slate-950 cursor-pointer transition';
+  document.getElementById('planReta2').className = 'p-2.5 rounded-xl border border-slate-800 bg-slate-950 cursor-pointer transition';
+  el.className = 'p-2.5 rounded-xl border border-cyan-500 bg-cyan-950/30 cursor-pointer transition';
+}
+
+function copyPixKey() {
+  const key = document.getElementById('pixKeyInput').value;
+  navigator.clipboard.writeText(key).then(() => {
+    alert('✅ Chave PIX de custódia copiada! Cole no seu aplicativo bancário.');
+  }).catch(() => {
+    alert('Chave: pix.garantia@dronehub.com.br');
+  });
+}
+
+function advanceEscrowDemo() {
+  currentEscrowState++;
+  if (currentEscrowState > 3) currentEscrowState = 1;
+  updateEscrowProgress();
+}
+
+function updateEscrowProgress() {
+  const s1 = document.getElementById('stepPix');
+  const s2 = document.getElementById('stepVoo');
+  const s3 = document.getElementById('stepAprov');
+  const btn = document.getElementById('btnAdvanceEscrow');
+
+  if (currentEscrowState === 1) {
+    s1.className = 'bg-emerald-950 text-emerald-300 border border-emerald-600 py-1 rounded font-bold';
+    s2.className = 'bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded';
+    s3.className = 'bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded';
+    btn.innerText = 'Simular: 1. Confirmar PIX em Custódia';
+    btn.className = 'w-full py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs active:scale-95 transition';
+  } else if (currentEscrowState === 2) {
+    s1.className = 'bg-slate-900 text-slate-400 border border-slate-800 py-1 rounded';
+    s2.className = 'bg-amber-950 text-amber-300 border border-amber-600 py-1 rounded font-bold';
+    s3.className = 'bg-slate-950 text-slate-500 border border-slate-800 py-1 rounded';
+    btn.innerText = 'Simular: 2. Piloto Concluiu Voo e Subiu Fotos';
+    btn.className = 'w-full py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs active:scale-95 transition';
+  } else if (currentEscrowState === 3) {
+    s1.className = 'bg-slate-900 text-slate-400 border border-slate-800 py-1 rounded';
+    s2.className = 'bg-slate-900 text-slate-400 border border-slate-800 py-1 rounded';
+    s3.className = 'bg-emerald-950 text-emerald-300 border border-emerald-500 py-1 rounded font-bold';
+    btn.innerText = 'Simular: 3. Cliente Aprova e Libera R$ ao Piloto 🎉';
+    btn.className = 'w-full py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs active:scale-95 transition';
+  }
+}
+
+// ——————————————————————————————————————————————————————————
+// 4. CÂMERA REAL DO CELULAR & STREAMING EXTERNO
+// ——————————————————————————————————————————————————————————
+let realCameraStream = null;
+let isRealCameraActive = false;
+
+async function toggleRealCamera() {
+  const video = document.getElementById('realVideoPlayer');
+  const canvas = document.getElementById('liveDroneCanvas');
+  const btnText = document.getElementById('txtRealCam');
+  const badge = document.getElementById('liveSourceBadge');
+
+  if (isRealCameraActive) {
+    // Desligar Câmera Real -> Voltar para Simulação
+    if (realCameraStream) {
+      realCameraStream.getTracks().forEach(track => track.stop());
+      realCameraStream = null;
+    }
+    video.classList.add('hidden');
+    canvas.classList.remove('hidden');
+    isRealCameraActive = false;
+    btnText.innerText = 'Ligar Câmera Real';
+    badge.innerText = 'SIMULAÇÃO 4K';
+    badge.className = 'text-[9px] font-mono bg-rose-950 text-rose-300 border border-rose-800 px-1.5 py-0.2 rounded font-bold';
+    startLiveSimulation();
+  } else {
+    // Ligar Câmera Real do Smartphone / Webcam
+    try {
+      realCameraStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+      video.srcObject = realCameraStream;
+      video.classList.remove('hidden');
+      canvas.classList.add('hidden');
+      if (liveInterval) clearInterval(liveInterval);
+      
+      isRealCameraActive = true;
+      btnText.innerText = 'Desligar Câmera';
+      badge.innerText = 'CÂMERA REAL ATIVA 🔴';
+      badge.className = 'text-[9px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-700 px-1.5 py-0.2 rounded font-bold animate-pulse';
+    } catch (err) {
+      alert('Não foi possível acessar a câmera do dispositivo. Verifique as permissões de vídeo no navegador.');
+    }
+  }
+}
+
+function toggleStreamInputModal() {
+  document.getElementById('streamInputModal').classList.toggle('hidden');
+}
+
+function applyExternalStream() {
+  const url = document.getElementById('streamUrlInput').value.trim();
+  if (!url) return;
+  toggleStreamInputModal();
+  document.getElementById('liveSourceBadge').innerText = 'FEED RTMP CONECTADO';
+  document.getElementById('liveSourceBadge').className = 'text-[9px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-700 px-1.5 py-0.2 rounded font-bold';
+  alert('Conexão estabelecida com a fonte externa: ' + url);
+}
+
+// ——————————————————————————————————————————————————————————
+// 5. CONVIDAR COLEGAS PILOTOS NO WHATSAPP
+// ——————————————————————————————————————————————————————————
+function shareInviteWhatsApp() {
+  const msg = encodeURIComponent("Fala piloto! Estou usando o DroneHub Brasil para pegar missões de drone em todo o país com garantia de pagamento via PIX. Dá uma olhada e cadastra seu drone aqui: " + window.location.href);
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
+// ——————————————————————————————————————————————————————————
+// 6. RENDERIZAÇÃO DO MURAL DE VAGAS / MISSÕES
+// ——————————————————————————————————————————————————————————
+function renderDemands() {
+  const container = document.getElementById('demandsList');
+  container.innerHTML = demands.map(d => `
+    <div class="card p-3.5 space-y-2">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="text-[10px] font-mono text-cyan-400 font-bold uppercase">${d.categoria}</span>
+          <h4 class="text-xs font-bold text-white">${d.titulo}</h4>
+          <span class="text-[11px] text-slate-400">📍 ${d.local} • ${d.data || 'Ativa'}</span>
+        </div>
+        <span class="text-xs font-mono font-bold text-emerald-400">${d.orcamento}</span>
+      </div>
+      <div class="border-t border-slate-800/80 pt-2 flex items-center justify-between">
+        <span class="text-[10px] text-slate-500">Exige conformidade ANAC</span>
+        <a href="https://wa.me/55${d.contato}?text=Ol%C3%A1,%20tenho%20interesse%20na%20miss%C3%A3o:%20${encodeURIComponent(d.titulo)}" 
+           target="_blank" 
+           class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3 py-1 rounded-lg">
+          Enviar Proposta
+        </a>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ——————————————————————————————————————————————————————————
+// 7. MUDANÇA DE ABAS NO RODAPÉ (corrigido: só alterna as 5 abas principais)
+// ——————————————————————————————————————————————————————————
+const TAB_IDS = ['tabExplorar', 'tabLive', 'tabCockpit', 'tabVagas', 'tabCadastro'];
+
+function switchNavTab(tabId, btn) {
+  TAB_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  
+  const target = document.getElementById(tabId);
+  if (target) target.classList.remove('hidden');
+  if (btn) btn.classList.add('active');
+  document.getElementById('mainScroll').scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (tabId === 'tabLive' && !isRealCameraActive) {
+    startLiveSimulation();
+  }
+}
+
+// ——————————————————————————————————————————————————————————
+// 8. SIMULADOR DE TRANSMISSÃO TÁTICA (CANVAS HUD)
+// ——————————————————————————————————————————————————————————
+let liveInterval = null;
+let cameraMode = 'rgb';
+
+function setCameraMode(mode) {
+  cameraMode = mode;
+  ['btnCamRGB', 'btnCamThermal', 'btnCamNDVI'].forEach(id => {
+    document.getElementById(id).className = 'flex-1 py-2 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800 flex items-center justify-center gap-1.5 transition';
+  });
+  if (mode === 'rgb') document.getElementById('btnCamRGB').className = 'flex-1 py-2 rounded-xl text-xs font-semibold bg-cyan-950 text-cyan-300 border border-cyan-500/40 flex items-center justify-center gap-1.5 transition';
+  if (mode === 'thermal') document.getElementById('btnCamThermal').className = 'flex-1 py-2 rounded-xl text-xs font-semibold bg-rose-950 text-rose-300 border border-rose-500/40 flex items-center justify-center gap-1.5 transition';
+  if (mode === 'ndvi') document.getElementById('btnCamNDVI').className = 'flex-1 py-2 rounded-xl text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-500/40 flex items-center justify-center gap-1.5 transition';
+}
+
+function startLiveSimulation() {
+  const canvas = document.getElementById('liveDroneCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = 640;
+  canvas.height = 360;
+
+  let frame = 0;
+  if (liveInterval) clearInterval(liveInterval);
+
+  liveInterval = setInterval(() => {
+    frame++;
+    const t = frame * 0.03;
+
+    if (cameraMode === 'rgb') {
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, '#1e293b');
+      grad.addColorStop(0.5, '#0f172a');
+      grad.addColorStop(1, '#064e3b');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 8; i++) {
+        let x = (i * 90 + Math.sin(t + i) * 10) % canvas.width;
+        ctx.strokeRect(x, 180 + Math.cos(t) * 15, 60, 140);
+      }
+    } else if (cameraMode === 'thermal') {
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      grad.addColorStop(0, '#2e1065');
+      grad.addColorStop(0.6, '#9333ea');
+      grad.addColorStop(1, '#facc15');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2 + Math.sin(t) * 40, canvas.height / 2 + Math.cos(t) * 20, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ef4444';
+      ctx.stroke();
+    } else if (cameraMode === 'ndvi') {
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, '#064e3b');
+      grad.addColorStop(0.5, '#10b981');
+      grad.addColorStop(1, '#84cc16');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    const alt = (94.2 + Math.sin(t * 0.5) * 1.5).toFixed(1);
+    const speed = (14.8 + Math.cos(t * 0.4) * 0.8).toFixed(1);
+    document.getElementById('hudAlt').innerText = alt + ' m';
+    document.getElementById('hudSpeed').innerText = speed + ' m/s';
+  }, 50);
+}
+
+// ——————————————————————————————————————————————————————————
+// 9. INTERCOM CLIENTE <-> PILOTO (CHAT AO VIVO)
+// ——————————————————————————————————————————————————————————
+function sendLiveMessage() {
+  const input = document.getElementById('liveChatInput');
+  const txt = input.value.trim();
+  if (!txt) return;
+
+  const chat = document.getElementById('liveChatMessages');
+  const d = new Date();
+  const time = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+  chat.innerHTML += `
+    <div class="bg-cyan-950/40 p-2 rounded-lg border border-cyan-800/40 animate-slide-up">
+      <span class="text-[10px] text-emerald-400 font-bold block font-mono">CLIENTE [${time}]:</span>
+      <span class="text-slate-200">${txt}</span>
+    </div>
+  `;
+  input.value = '';
+  chat.scrollTop = chat.scrollHeight;
+
+  setTimeout(() => {
+    chat.innerHTML += `
+      <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 animate-slide-up">
+        <span class="text-[10px] text-cyan-400 font-bold block font-mono">PILOTO (Lucas Andrade) [${time}]:</span>
+        <span class="text-slate-300">Copiado, executando instrução no gimbal/trajetória agora!</span>
+      </div>
+    `;
+    chat.scrollTop = chat.scrollHeight;
+  }, 1200);
+}
+
+function sendQuickCommand(cmd) {
+  document.getElementById('liveChatInput').value = cmd;
+  sendLiveMessage();
+}
+
+// ——————————————————————————————————————————————————————————
+// ——————————————————————————————————————————————————————————
+// 9.5 BÚSSOLA TÁTICA 360°, SIMULADOR METEOROLÓGICO & COPILOTO IA
+// ——————————————————————————————————————————————————————————
+let currentDroneHeading = 42; // Rumo inicial 042° NE
+let currentFlightCondition = 'safe'; // 'safe' | 'danger'
+
+// Controle da Bússola Tática
+function rotateDroneHeading(degrees) {
+  currentDroneHeading = degrees % 360;
+  
+  // Atualiza Bússola do Cockpit
+  const dial = document.getElementById('cockpitCompassDial');
+  if (dial) dial.style.transform = `rotate(${currentDroneHeading}deg)`;
+  
+  // Atualiza Bússola do HUD
+  const hudRose = document.getElementById('hudCompassRose');
+  if (hudRose) hudRose.style.transform = `rotate(${currentDroneHeading}deg)`;
+
+  // Cardinal point
+  let cardinal = 'N';
+  if (currentDroneHeading >= 23 && currentDroneHeading < 68) cardinal = 'NE';
+  else if (currentDroneHeading >= 68 && currentDroneHeading < 113) cardinal = 'Leste (E)';
+  else if (currentDroneHeading >= 113 && currentDroneHeading < 158) cardinal = 'SE';
+  else if (currentDroneHeading >= 158 && currentDroneHeading < 203) cardinal = 'Sul (S)';
+  else if (currentDroneHeading >= 203 && currentDroneHeading < 248) cardinal = 'SW';
+  else if (currentDroneHeading >= 248 && currentDroneHeading < 293) cardinal = 'Oeste (W)';
+  else if (currentDroneHeading >= 293 && currentDroneHeading < 338) cardinal = 'NW';
+
+  const headingStr = String(currentDroneHeading).padStart(3, '0') + '°';
+  const headingText = document.getElementById('cockpitHeadingText');
+  if (headingText) headingText.innerText = `${headingStr} (${cardinal})`;
+
+  const hudHeadingVal = document.getElementById('hudHeadingVal');
+  if (hudHeadingVal) hudHeadingVal.innerText = `${headingStr} ${cardinal}`;
+}
+
+// Alternar Condições de Voo (Normal vs Tempestade Solar KP)
+function setFlightCondition(condition) {
+  currentFlightCondition = condition;
+  const btnSafe = document.getElementById('btnCondSafe');
+  const btnDanger = document.getElementById('btnCondDanger');
+  const badgeKp = document.getElementById('badgeKpStatus');
+  const valKp = document.getElementById('valKpStatus');
+  const scoreBadge = document.getElementById('cockpitScoreBadge');
+  const pulseDot = document.getElementById('cockpitPulseDot');
+  const riskBox = document.getElementById('riskWarningBox');
+  const sarpasText = document.getElementById('cockpitSarpasText');
+
+  if (condition === 'safe') {
+    btnSafe.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-500 text-slate-950 transition active:scale-95 shadow-sm';
+    btnDanger.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-rose-400 border border-rose-900 hover:border-rose-500 transition active:scale-95';
+    
+    badgeKp.className = 'text-[9px] font-mono bg-emerald-950 text-emerald-300 px-1.5 py-0.2 rounded font-bold';
+    badgeKp.innerText = 'GPS SEGURO';
+    valKp.className = 'text-sm font-bold font-mono text-emerald-400';
+    valKp.innerText = 'KP 1.8 (Calmo)';
+    
+    scoreBadge.className = 'text-[11px] font-mono text-emerald-400 font-bold bg-emerald-950/70 border border-emerald-800 px-2 py-0.5 rounded';
+    scoreBadge.innerText = 'GO / SCORE 94%';
+    pulseDot.className = 'w-2 h-2 rounded-full bg-cyan-400 animate-pulse';
+    sarpasText.innerText = 'SARPAS DECEA: AUTORIZADO (BR-94812) • VOO VLOS';
+
+    riskBox.classList.add('hidden');
+  } else {
+    btnSafe.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 text-slate-400 border border-slate-800 transition active:scale-95';
+    btnDanger.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-600 text-white transition active:scale-95 shadow-md shadow-rose-900';
+    
+    badgeKp.className = 'text-[9px] font-mono bg-rose-950 text-rose-300 px-1.5 py-0.2 rounded font-bold animate-pulse';
+    badgeKp.innerText = 'TEMPESTADE G2';
+    valKp.className = 'text-sm font-bold font-mono text-rose-400';
+    valKp.innerText = 'KP 6.2 (Crítico)';
+    
+    scoreBadge.className = 'text-[11px] font-mono text-rose-400 font-bold bg-rose-950/90 border border-rose-700 px-2 py-0.5 rounded animate-pulse';
+    scoreBadge.innerText = 'NO-GO / SCORE 35%';
+    pulseDot.className = 'w-2 h-2 rounded-full bg-rose-500 animate-ping';
+    sarpasText.innerText = 'SARPAS DECEA: SUSPENSO DEVIDO A ALERTA METEOROLÓGICO/SOLAR';
+
+    riskBox.classList.remove('hidden');
+  }
+}
+
+// Modais de KP / PDOP
+function openKpPdopModal(tab) {
+  document.getElementById('kpPdopModal').classList.remove('hidden');
+  switchKpTab(tab || 'kp');
+}
+function closeKpPdopModal() {
+  document.getElementById('kpPdopModal').classList.add('hidden');
+}
+function switchKpTab(tab) {
+  const btnKp = document.getElementById('btnTabModalKp');
+  const btnPdop = document.getElementById('btnTabModalPdop');
+  const contentKp = document.getElementById('contentModalKp');
+  const contentPdop = document.getElementById('contentModalPdop');
+
+  if (tab === 'kp') {
+    btnKp.className = 'flex-1 py-1.5 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950 transition active:scale-95';
+    btnPdop.className = 'flex-1 py-1.5 rounded-xl text-xs font-bold bg-slate-950 border border-slate-800 text-slate-400 transition active:scale-95';
+    contentKp.classList.remove('hidden');
+    contentPdop.classList.add('hidden');
+  } else {
+    btnPdop.className = 'flex-1 py-1.5 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950 transition active:scale-95';
+    btnKp.className = 'flex-1 py-1.5 rounded-xl text-xs font-bold bg-slate-950 border border-slate-800 text-slate-400 transition active:scale-95';
+    contentPdop.classList.remove('hidden');
+    contentKp.classList.add('hidden');
+  }
+}
+
+// Modal de Termo de Assunção de Risco (Waiver)
+function openRiskWaiverModal() {
+  document.getElementById('riskWaiverModal').classList.remove('hidden');
+}
+function closeRiskWaiverModal() {
+  document.getElementById('riskWaiverModal').classList.add('hidden');
+}
+function handleRiskWaiverSubmit(e) {
+  if (e) e.preventDefault();
+  const pilotName = document.getElementById('waiverPilotName').value;
+  const pilotReg = document.getElementById('waiverPilotReg').value;
+  const isChecked = document.getElementById('waiverCheckbox').checked;
+
+  if (!isChecked) {
+    alert('⚠️ Você deve marcar a caixa concordando em assumir os riscos operacionais.');
+    return;
+  }
+
+  const logTimestamp = new Date().toISOString();
+  console.log(`[SAFE HARBOR WAIVER LOG] Piloto: ${pilotName} | Registro: ${pilotReg} | Data: ${logTimestamp} | Condição: KP 6.2 Assumido`);
+  
+  closeRiskWaiverModal();
+  alert(`✅ TERMO DE RESPONSABILIDADE ASSINADO DIGITALMENTE!\n\nPiloto: ${pilotName}\nRegistro: ${pilotReg}\nData/Hora: ${new Date().toLocaleString('pt-BR')}\n\nO despacho liberou o modo manual de emergência. A DroneHub fica isenta de qualquer solidariedade por sinistros decorrentes desta operação.`);
+}
+
+// ——————————————————————————————————————————————————————————
+// BASE DE CONHECIMENTO AEROESPACIAL PAN-AMERICANA (AEROAI)
+// ——————————————————————————————————————————————————————————
+const AERO_KNOWLEDGE_BASE = {
+  brasil: {
+    orgaos: "DECEA (Força Aérea Brasileira), ANAC e ANATEL.",
+    sistema: "SARPAS NG (Sistema de Solicitação de Acesso ao Espaço Aéreo por RPA).",
+    leis: "ICA 100-40 (DECEA) e RBAC-E 94 (ANAC).",
+    seguro: "Seguro RETA obrigatório (Lei 7.565/86 - Código Brasileiro de Aeronáutica).",
+    teto: "120 metros (400 pés) AGL para voos normais VLOS.",
+    aeroportos: "Distância mínima de 5,4 km (3 NM) a 9 km dependendo da zona de aproximação.",
+    estrangeiro: "Pilotos estrangeiros no Brasil precisam homologar o rádio na Anatel, cadastrar a aeronave no SISANT da ANAC com CPF/Passaporte e submeter voo no SARPAS com antecedência mínima de 48h a 18 dias úteis se for área urbana."
+  },
+  canada: {
+    orgaos: "Transport Canada (Aviation Civile).",
+    sistema: "Drone Management Portal & NAV CANADA NAV Drone App.",
+    leis: "Canadian Aviation Regulations (CARs) Part IX.",
+    categorias: "Micro-drones (&lt;250g como DJI Mini) não precisam de registro nem licença, mas exigem voo seguro. Drones de 250g a 25kg exigem registro de $5 CAD e exame de piloto (Basic ou Advanced).",
+    teto: "122 metros (400 pés) AGL.",
+    aeroportos: "5,6 km (3 milhas náuticas) de aeroportos certificados e 1,9 km de heliportos.",
+    estrangeiro: "ATENÇÃO PILOTO BRASILEIRO NO CANADÁ: Você NÃO pode operar comercialmente no Canadá sem um SFOC (Special Flight Operations Certificate for Foreign Operators). Você precisa solicitar com pelo menos 30 dias de antecedência no Transport Canada comprovando certificação e seguro de responsabilidade civil!"
+  },
+  eua: {
+    orgaos: "FAA (Federal Aviation Administration).",
+    sistema: "LAANC (Low Altitude Authorization and Notification Capability) e FAADroneZone.",
+    leis: "14 CFR Part 107 (Operações Comerciais) e 49 U.S.C. 44809 (Recreativo TRUST).",
+    requisitos: "Remote ID obrigatório para todos os drones com mais de 250g. Certificado de Piloto Remoto Part 107 para qualquer atividade comercial.",
+    teto: "400 pés (122 metros) AGL.",
+    aeroportos: "Autorização automática em tempo real via LAANC perto de centenas de aeroportos classe B, C, D e E.",
+    estrangeiro: "Piloto estrangeiro nos EUA precisa registrar o drone no FAADroneZone ($5 USD) e passar no exame Part 107 (presencial nos EUA em centro PSI) se for receber por qualquer trabalho, ou TRUST se for lazer."
+  },
+  mexico: {
+    orgaos: "AFAC (Agencia Federal de Aviación Civil).",
+    sistema: "Portal de Registro de RPAS AFAC.",
+    leis: "Norma Oficial Mexicana NOM-107-SCT3-2019.",
+    requisitos: "Registro obrigatório de qualquer drone acima de 250g. Seguro de responsabilidade civil para danos a terceiros obrigatório para uso comercial.",
+    teto: "122 metros (400 pés) AGL.",
+    aeroportos: "9,2 km de aeroportos controlados e 900 metros de heliportos.",
+    estrangeiro: "Pilotos estrangeiros no México só podem operar drones com autorização temporária prévia da AFAC e não podem realizar trabalhos comerciais sem visto de trabalho mexicano e seguro emitido no país."
+  },
+  colombia: {
+    orgaos: "Aerocivil (Unidad Administrativa Especial de Aeronáutica Civil - UAEAC).",
+    sistema: "SISANDRONES (Sistema de Aeronaves No Tripuladas).",
+    leis: "Regulamento Aeronáutico da Colômbia - RAC 100.",
+    requisitos: "Registro do drone, certificado de idoneidade de piloto emitido por centro de instrução certificado (CIAC) e apólice de seguro contra terceiros.",
+    teto: "123 metros (400 pés) AGL.",
+    aeroportos: "Distância mínima de 5 km de aeródromos e 1 km de heliportos.",
+    estrangeiro: "Turistas podem operar drones recreativos sub-250g. Para drones maiores ou uso comercial, deve homologar a licença estrangeira na Aerocivil."
+  },
+  argentina: {
+    orgaos: "ANAC (Administración Nacional de Aviación Civil).",
+    sistema: "Casillero Aeronáutico Digital (CAD).",
+    leis: "Resolução ANAC 880/2019.",
+    requisitos: "Registro de VANT, seguro obrigatório e certificado de competência de piloto.",
+    teto: "120 metros AGL.",
+    estrangeiro: "Necessário registro temporário no CAD da ANAC Argentina antes de cruzar a alfândega com o drone."
+  },
+  chile: {
+    orgaos: "DGAC (Dirección General de Aeronáutica Civil de Chile).",
+    sistema: "Sistema de Registro de RPA da DGAC.",
+    leis: "DAN 151 (Áreas povoadas) e DAN 91 (Geral).",
+    requisitos: "Credencial de operador RPA, drone empadronado com placa metálica e apólice de seguro de responsabilidade civil aeronáutica.",
+    teto: "130 metros AGL."
+  },
+  peru: {
+    orgaos: "DGAC Perú (Ministerio de Transportes y Comunicaciones - MTC).",
+    sistema: "Registro Nacional de RPAS do MTC.",
+    leis: "Norma Técnica Complementar NTC 001-2015.",
+    requisitos: "Cartão de registro de aeronave, licença de operador e autorização de sobrevoo para áreas urbanas.",
+    teto: "152 metros (500 pés) AGL."
+  },
+  equador: {
+    orgaos: "DGAC Ecuador (Dirección General de Aviación Civil).",
+    sistema: "Registro de RPAS DGAC.",
+    leis: "Regulamento RDAC Parte 101.",
+    requisitos: "Drones acima de 250g devem ser registrados. É obrigatório seguro contra terceiros para uso comercial. É proibido sobrevoar parques nacionais como Galápagos sem licença ambiental especial do Ministério do Ambiente.",
+    teto: "122 metros (400 pés) AGL.",
+    aeroportos: "9 km de aeroportos internacionais e 3 km de pistas secundárias."
+  }
+};
+
+// Funções do Modal Copiloto IA
+function openAeroAIModal() {
+  document.getElementById('aeroAIModal').classList.remove('hidden');
+  const chatFeed = document.getElementById('aeroAIChatFeed');
+  chatFeed.scrollTop = chatFeed.scrollHeight;
+}
+function closeAeroAIModal() {
+  document.getElementById('aeroAIModal').classList.add('hidden');
+}
+
+function handleAeroAISubmit(e) {
+  if (e) e.preventDefault();
+  const input = document.getElementById('aeroAIInput');
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+  askAeroAI(question);
+}
+
+function askAeroAI(question) {
+  openAeroAIModal();
+  const chatFeed = document.getElementById('aeroAIChatFeed');
+
+  // Adiciona a pergunta do usuário no chat
+  chatFeed.innerHTML += `
+    <div class="bg-slate-900 border border-slate-800 p-2.5 rounded-xl ml-4 space-y-1 animate-slide-up">
+      <span class="text-[10px] text-cyan-400 font-bold block font-mono">PILOTO COMANDANTE:</span>
+      <span class="text-slate-200 text-xs">${escapeHtml(question)}</span>
+    </div>
+  `;
+  chatFeed.scrollTop = chatFeed.scrollHeight;
+
+  // Resposta com Inteligência Semântica e Filtro de Segurança
+  setTimeout(() => {
+    const responseHtml = processAeroAIQuery(question);
+    chatFeed.innerHTML += `
+      <div class="bg-cyan-950/40 border border-cyan-800/40 p-2.5 rounded-xl mr-4 space-y-1.5 animate-slide-up">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] text-emerald-400 font-bold font-mono">🤖 AEROAI COPILOT:</span>
+          <span class="text-[8px] text-slate-400 font-mono">CONFORMIDADE VERIFICADA</span>
+        </div>
+        <div class="text-slate-200 text-[11px] leading-relaxed">
+          ${responseHtml}
+        </div>
+      </div>
+    `;
+    chatFeed.scrollTop = chatFeed.scrollHeight;
+  }, 400);
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.innerText = text;
+  return div.innerHTML;
+}
+
+// Mecanismo de Inteligência Artificial Aeronáutica com Guardrails
+function processAeroAIQuery(q) {
+  const query = q.toLowerCase();
+
+  // GUARDRAIL RIGOROSO: Bloqueio de assuntos estranhos ao universo de drones e espaço aéreo
+  const forbiddenKeywords = [
+    'futebol', 'jogo', 'receita', 'fazer bolo', 'piada', 'presidente', 'eleição', 
+    'fofoca', 'bitcoin', 'namoro', 'signo', 'horóscopo', 'filme', 'série', 'musica', 'canção'
+  ];
+  for (const word of forbiddenKeywords) {
+    if (query.includes(word)) {
+      return `
+        <div class="p-2 rounded-lg bg-rose-950/60 border border-rose-800/60 text-rose-200 text-[11px]">
+          🔒 <b>ASSUNTO FORA DO ESCOPO AERONÁUTICO:</b><br>
+          Como Copiloto Oficial de Espaço Aéreo da DroneHub, meu sistema de inteligência opera exclusivamente com base em normas de aviação civil (DECEA, ANAC, FAA, Transport Canada, DGAC), autorizações de voo, clima espacial (KP/PDOP) e segurança operacional de drones nas Américas. Por favor, envie uma dúvida relacionada a regulamentações ou voo de aeronaves não tripuladas!
+        </div>
+      `;
+    }
+  }
+
+  // 1. CANADÁ / PILOTO BRASILEIRO NO CANADÁ
+  if (query.includes('canadá') || query.includes('canada') || (query.includes('brasil') && query.includes('canada'))) {
+    const c = AERO_KNOWLEDGE_BASE.canada;
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-cyan-300 block">🇨🇦 REGRAS DE VOO NO CANADÁ (TRANSPORT CANADA):</span>
+        <p><b>1. Drones &lt; 250g (ex: DJI Mini):</b> Não requerem licença nem registro obrigatório, mas devem ser voados em VLOS com segurança e longe de aeroportos.</p>
+        <p><b>2. Drones de 250g a 25kg:</b> Exigem cadastro no Drone Management Portal ($5 CAD) e certificado de piloto (Basic ou Advanced).</p>
+        <p><b>3. Teto Máximo:</b> 122 metros (400 pés) AGL. Distância de aeroportos: 5,6 km (3 NM).</p>
+        <div class="p-2 rounded-lg bg-amber-950/50 border border-amber-800/60 text-amber-200 mt-1">
+          ⚠️ <b>SE VOCÊ FOR PILOTO BRASILEIRO INDO AO CANADÁ:</b><br>
+          Cidadãos estrangeiros NÃO podem operar drones comercialmente no Canadá sem solicitar previamente o <b>SFOC (Special Flight Operations Certificate for Foreign Operators)</b> junto à Transport Canada com pelo menos 30 dias de antecedência!
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. EQUADOR (DGAC RDAC 101)
+  if (query.includes('equador') || query.includes('ecuador')) {
+    const e = AERO_KNOWLEDGE_BASE.equador;
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-cyan-300 block">🇪🇨 REGRAS PARA DRONES NO EQUADOR (DGAC):</span>
+        <p><b>1. Órgão Regulador:</b> Dirección General de Aviación Civil (DGAC) - Regulamento <b>RDAC Parte 101</b>.</p>
+        <p><b>2. Registro Obrigatório:</b> Todos os drones acima de 250g devem ser cadastrados no portal da DGAC antes da operação.</p>
+        <p><b>3. Seguro:</b> Apólice de responsabilidade civil contra danos a terceiros obrigatória para operações comerciais.</p>
+        <p><b>4. Limites de Voo:</b> Altura máxima de 122 metros (400 pés) AGL e pelo menos 9 km de distância de aeroportos internacionais.</p>
+        <div class="p-2 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-cyan-200 mt-1">
+          📌 <b>Dica Galápagos:</b> Se for visitar o Parque Nacional Galápagos, é terminantemente proibido voar sem autorização expressa conjunta da DGAC e do Ministério do Ambiente.
+        </div>
+      </div>
+    `;
+  }
+
+  // 3. BRASIL (DECEA / SARPAS / ANAC / SEGURO RETA)
+  if (query.includes('brasil') || query.includes('sarpas') || query.includes('decea') || query.includes('anac') || query.includes('reta')) {
+    const b = AERO_KNOWLEDGE_BASE.brasil;
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-cyan-300 block">🇧🇷 REGULAMENTAÇÃO BRASILEIRA (DECEA / ANAC / ANATEL):</span>
+        <p><b>1. Controle do Espaço Aéreo:</b> O espaço aéreo pertence ao DECEA (FAB). Qualquer voo comercial deve ser submetido via sistema <b>SARPAS NG</b>.</p>
+        <p><b>2. Cadastro ANAC:</b> Drones com mais de 250g devem possuir registro no SISANT e identificação visível (PP-XXXXXXXXX).</p>
+        <p><b>3. Seguro RETA Obrigatório:</b> Exigido pelo Código Brasileiro de Aeronáutica (Art. 178 da Lei 7.565/86) para garantir danos a terceiros no solo.</p>
+        <p><b>4. Parâmetros de Voo:</b> Altura máxima de 120m AGL, operação sempre em linha de visada visual (VLOS) a menos de 30m de pessoas não anuentes.</p>
+      </div>
+    `;
+  }
+
+  // 4. ESTADOS UNIDOS (FAA PART 107 / LAANC)
+  if (query.includes('eua') || query.includes('estados unidos') || query.includes('usa') || query.includes('faa') || query.includes('laanc')) {
+    const u = AERO_KNOWLEDGE_BASE.eua;
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-cyan-300 block">🇺🇸 REGRAS NOS ESTADOS UNIDOS (FAA):</span>
+        <p><b>1. Operação Comercial (Part 107):</b> Exige obter a licença Remote Pilot Certificate da FAA (exame presencial de conhecimentos aeronáuticos).</p>
+        <p><b>2. Autorização em Espaço Controlado (LAANC):</b> Use aplicativos autorizados da FAA (como Aloft/Airspace Link) para receber autorização quase instantânea em espaços classe B, C, D e E.</p>
+        <p><b>3. Remote ID:</b> Obrigatório para qualquer drone comercial ou com mais de 250g transmitindo sinal de localização em tempo real.</p>
+        <p><b>4. Teto de Voo:</b> 400 pés (122m) AGL. Velocidade máx: 100 mph (160 km/h).</p>
+      </div>
+    `;
+  }
+
+  // 5. MÉXICO
+  if (query.includes('méxico') || query.includes('mexico') || query.includes('afac')) {
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-cyan-300 block">🇲🇽 REGRAS NO MÉXICO (AFAC):</span>
+        <p><b>1. Norma Oficial:</b> NOM-107-SCT3-2019 da Agencia Federal de Aviación Civil.</p>
+        <p><b>2. Registro:</b> Obrigatório no portal da AFAC para drones com mais de 250g.</p>
+        <p><b>3. Seguro:</b> Seguro de responsabilidade civil contra danos a terceiros obrigatório para qualquer voo comercial.</p>
+        <p><b>4. Limites:</b> 122m AGL e distância de 9,2 km de aeroportos controlados.</p>
+      </div>
+    `;
+  }
+
+  // 6. COLÔMBIA
+  if (query.includes('colômbia') || query.includes('colombia') || query.includes('aerocivil')) {
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-cyan-300 block">🇨🇴 REGRAS NA COLÔMBIA (AEROCIVIL - RAC 100):</span>
+        <p><b>1. Sistema SISANDRONES:</b> Registro obrigatório da aeronave e autorização prévia da Aerocivil.</p>
+        <p><b>2. Certificado de Piloto:</b> Emitido por Centro de Instrução Aeronáutico certificado.</p>
+        <p><b>3. Seguro:</b> Apólice de danos a terceiros exigida para todas as classes comerciais.</p>
+        <p><b>4. Teto:</b> 123 metros (400 pés) AGL.</p>
+      </div>
+    `;
+  }
+
+  // 7. ARGENTINA / CHILE / PERU
+  if (query.includes('argentina') || query.includes('chile') || query.includes('peru') || query.includes('perú')) {
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-cyan-300 block">🌎 REGRAS NA AMÉRICA DO SUL (DGAC / ANAC):</span>
+        <p><b>• Argentina (ANAC Res. 880):</b> Cadastro obrigatório no Casillero Aeronáutico Digital (CAD), seguro contra terceiros e teto de 120m.</p>
+        <p><b>• Chile (DGAC DAN 151):</b> Credencial de operador RPA da DGAC, drone empadronado com placa identificadora e seguro aeronáutico.</p>
+        <p><b>• Peru (DGAC NTC 001):</b> Registro da aeronave no MTC, licença de operador e teto de até 152m (500 pés) AGL fora de áreas restritas.</p>
+      </div>
+    `;
+  }
+
+  // 8. CLIMA ESPACIAL / ÍNDICE KP / TEMPESTADE SOLAR
+  if (query.includes('kp') || query.includes('solar') || query.includes('tempestade') || query.includes('geomagnética') || query.includes('flyaway')) {
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-amber-300 block">☀️ IMPACTO DO ÍNDICE KP & TEMPESTADES SOLARES:</span>
+        <p><b>• O que é o KP (0 a 9)?</b> Escala da NOAA que mede perturbações geomagnéticas causadas por ejeções do Sol.</p>
+        <p><b>• Por que afeta o drone?</b> O vento solar ioniza a atmosfera e desvia as ondas de rádio L1/L2 dos satélites GNSS, causando erros de cálculo posicional de vários metros e descalibrando a bússola magnética.</p>
+        <p><b>• O perigo de Flyaway:</b> Quando a controladora de voo detecta conflito entre a bússola e o GPS em KP ≥ 5, ela pode entrar em falha de navegação e sair derivando descontroladamente.</p>
+        <p><b>• Regra de Ouro:</b> KP 0 a 3 é voo seguro; KP 4 exige atenção; <b>KP ≥ 5 é estado NO-GO</b> (aborte missões autônomas ou voe apenas em modo manual com termo assinado).</p>
+      </div>
+    `;
+  }
+
+  // 9. PDOP & GEOMETRIA DE SATÉLITES RTK
+  if (query.includes('pdop') || query.includes('satélite') || query.includes('rtk') || query.includes('precisão')) {
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-cyan-300 block">🛰️ PDOP & QUALIDADE GEOMÉTRICA DE SATÉLITES:</span>
+        <p><b>• Significado:</b> Positional Dilution of Precision (Diluição de Precisão Posicional em 3D).</p>
+        <p><b>• PDOP Ideal (&lt; 2.0):</b> Satélites bem espalhados por todo o céu. Proporciona solução FIX no RTK com precisão centimétrica de 1 a 2 cm.</p>
+        <p><b>• PDOP Elevado (&gt; 3.0):</b> Satélites concentrados no mesmo quadrante (ou bloqueados por prédios/árvores). A precisão cai drasticamente e o RTK pode degradar para FLOAT.</p>
+      </div>
+    `;
+  }
+
+  // 10. BÚSSOLA & ORIENTAÇÃO
+  if (query.includes('bússola') || query.includes('bussola') || query.includes('orientação') || query.includes('heading') || query.includes('vento')) {
+    return `
+      <div class="space-y-1.5">
+        <span class="font-bold text-emerald-300 block">🧭 BÚSSOLA GIROSCÓPICA & ORIENTAÇÃO TÁTICA:</span>
+        <p><b>• Heading (Proa):</b> Indica o ângulo magnético (0° a 360°) para onde o nariz da aeronave está apontando em relação ao Norte magnético.</p>
+        <p><b>• Vetor Home (RTH):</b> Direção calculada em tempo real para o ponto exato onde o drone decolou. Crucial em caso de perda de link de rádio.</p>
+        <p><b>• Dica Aeronáutica:</b> Sempre decole e pouse com vento de proa (contra o vento), pois isso aumenta a sustentação nas hélices e economiza bateria!</p>
+      </div>
+    `;
+  }
+
+  // RESPOSTA PADRÃO AEROESPACIAL
+  return `
+    <div class="space-y-1.5">
+      <span class="font-bold text-cyan-300 block">📡 RESUMO DE CONFORMIDADE AERONÁUTICA:</span>
+      <p>Entendi sua consulta sobre operações de aeronaves não tripuladas. Nas Américas, todo voo comercial exige três pilares fundamentais:</p>
+      <p>1. <b>Autorização de Espaço Aéreo:</b> Submissão de plano de voo no órgão militar/civil do país (ex: SARPAS no Brasil, LAANC nos EUA, Transport Canada).</p>
+      <p>2. <b>Seguro Aeronáutico Obrigatório:</b> Apólice contra danos a terceiros (Seguro RETA no Brasil e apólices similares nos demais países).</p>
+      <p>3. <b>Envoltória Meteorológica e Solar:</b> Ventos dentro do limite da aeronave e índice solar KP &lt; 5 para evitar perda de sinal GNSS.</p>
+      <p class="text-slate-400 text-[10px] mt-1">Quer saber as regras específicas de algum país (Brasil, Canadá, EUA, Equador, etc.) ou sobre tempestades solares KP? Basta perguntar!</p>
+    </div>
+  `;
+}
+
+// 10. CALCULADORA DE MISSÃO & DESPACHO
+// ——————————————————————————————————————————————————————————
+function recalcMission() {
+  const area = parseFloat(document.getElementById('calcArea').value) || 10;
+  const alt = parseFloat(document.getElementById('calcAlt').value) || 100;
+
+  const gsd = (alt * 0.018).toFixed(1);
+  const tempo = Math.round((area * 0.6) * (100 / alt));
+  const baterias = Math.ceil(tempo / 25);
+
+  document.getElementById('resGSD').innerText = gsd + ' cm/px';
+  document.getElementById('resTempo').innerText = tempo + ' min';
+  document.getElementById('resBaterias').innerText = baterias + ' Par' + (baterias > 1 ? 'es' : '') + ' TB65';
+}
+
+// ——————————————————————————————————————————————————————————
+// 11. CADASTRO DE NOVO PILOTO
+// ——————————————————————————————————————————————————————————
+// ——————————————————————————————————————————————————————————
+// PORTFÓLIO DE FOTOS, CÂMERA 360° & TIMELAPSE
+// ——————————————————————————————————————————————————————————
+let pan360Offset = 0;
+let currentViewingPilot = null;
+
+function openPortfolioModal(pilotId) {
+  const p = pilots.find(x => x.id === pilotId) || pilots[0];
+  currentViewingPilot = p;
+  
+  document.getElementById('portPilotName').innerText = p.nome;
+  document.getElementById('portPilotLocation').innerText = `📍 ${p.cidade}, ${p.uf} • ${p.drones[0]}`;
+  document.getElementById('portPilotImg').src = p.foto;
+  document.getElementById('portWhatsappBtn').href = `https://wa.me/55${p.zap}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)},%20vi%20suas%20fotos%20360%C2%B0%20e%20timelapse%20no%20DroneHub!`;
+
+  // Renderiza Redes Sociais no Modal
+  const sContainer = document.getElementById('portSocialLinks');
+  sContainer.innerHTML = '';
+  if (p.social) {
+    if (p.social.instagram) {
+      sContainer.innerHTML += `
+        <a href="https://instagram.com/${p.social.instagram}" target="_blank" class="px-2.5 py-1 rounded-lg bg-pink-950/70 border border-pink-700/60 text-pink-300 font-bold flex items-center gap-1.5">
+          <span>📸 Instagram: @${p.social.instagram}</span>
+        </a>
+      `;
+    }
+    if (p.social.threads) {
+      sContainer.innerHTML += `
+        <a href="https://threads.net/@${p.social.threads}" target="_blank" class="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-bold flex items-center gap-1.5">
+          <span>🧵 Threads (Meta/Insta): @${p.social.threads}</span>
+        </a>
+      `;
+    }
+    if (p.social.linkedin) {
+      sContainer.innerHTML += `
+        <a href="https://linkedin.com/in/${p.social.linkedin}" target="_blank" class="px-2.5 py-1 rounded-lg bg-blue-950/70 border border-blue-700/60 text-blue-300 font-bold flex items-center gap-1.5">
+          <span>💼 LinkedIn: ${p.social.linkedin}</span>
+        </a>
+      `;
+    }
+    if (p.social.facebook) {
+      sContainer.innerHTML += `
+        <a href="https://facebook.com/${p.social.facebook}" target="_blank" class="px-2.5 py-1 rounded-lg bg-indigo-950/70 border border-indigo-700/60 text-indigo-300 font-bold flex items-center gap-1.5">
+          <span>📘 Facebook: /${p.social.facebook}</span>
+        </a>
+      `;
+    }
+  }
+
+  pan360Offset = 0;
+  pan360(0);
+  switchPortTab('360');
+  document.getElementById('portfolioModal').classList.remove('hidden');
+}
+
+function closePortfolioModal() {
+  document.getElementById('portfolioModal').classList.add('hidden');
+}
+
+function switchPortTab(tab) {
+  const btn360 = document.getElementById('btnPortTab360');
+  const btnTl = document.getElementById('btnPortTabTimelapse');
+  const btnFotos = document.getElementById('btnPortTabFotos');
+  const c360 = document.getElementById('portContent360');
+  const cTl = document.getElementById('portContentTimelapse');
+  const cFotos = document.getElementById('portContentFotos');
+
+  btn360.className = 'flex-1 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 font-bold transition active:scale-95';
+  btnTl.className = 'flex-1 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 font-bold transition active:scale-95';
+  btnFotos.className = 'flex-1 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 font-bold transition active:scale-95';
+
+  c360.classList.add('hidden');
+  cTl.classList.add('hidden');
+  cFotos.classList.add('hidden');
+
+  if (tab === '360') {
+    btn360.className = 'flex-1 py-1.5 rounded-xl bg-cyan-500 text-slate-950 font-bold transition active:scale-95 shadow-sm';
+    c360.classList.remove('hidden');
+  } else if (tab === 'timelapse') {
+    btnTl.className = 'flex-1 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold transition active:scale-95 shadow-sm';
+    cTl.classList.remove('hidden');
+  } else {
+    btnFotos.className = 'flex-1 py-1.5 rounded-xl bg-cyan-500 text-slate-950 font-bold transition active:scale-95 shadow-sm';
+    cFotos.classList.remove('hidden');
+  }
+}
+
+function pan360(step) {
+  pan360Offset = (pan360Offset + step);
+  if (pan360Offset > 120) pan360Offset = 120;
+  if (pan360Offset < -120) pan360Offset = -120;
+  const img = document.getElementById('port360Image');
+  if (img) img.style.transform = `scale(1.15) translateX(${pan360Offset}px)`;
+}
+
+function setTimelapsePhase(phase) {
+  const img = document.getElementById('portTimelapseImg');
+  const b1 = document.getElementById('btnTlPhase1');
+  const b2 = document.getElementById('btnTlPhase2');
+  const b3 = document.getElementById('btnTlPhase3');
+
+  b1.className = 'px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white';
+  b2.className = 'px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white';
+  b3.className = 'px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold hover:text-white';
+
+  if (phase === 1) {
+    b1.className = 'px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-bold';
+    img.src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=1000&auto=format&fit=crop';
+  } else if (phase === 2) {
+    b2.className = 'px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-bold';
+    img.src = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1000&auto=format&fit=crop';
+  } else {
+    b3.className = 'px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-bold';
+    img.src = 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1000&auto=format&fit=crop';
+  }
+}
+
+function handlePilotSubmit(e) {
+  e.preventDefault();
+  const specs = Array.from(document.querySelectorAll('input[name="pSpec"]:checked')).map(i => i.value);
+  const pFotoVal = document.getElementById('pFoto').value.trim();
+  
+  const novo = {
+    id: 'p_' + Date.now(),
+    nome: document.getElementById('pNome').value,
+    zap: document.getElementById('pZap').value,
+    uf: document.getElementById('pUF').value,
+    cidade: document.getElementById('pCidade').value,
+    anac: document.getElementById('pAnac').value || 'PP-' + Math.floor(100000000 + Math.random() * 900000000),
+    drones: document.getElementById('pDrones').value.split(',').map(s => s.trim()),
+    especialidades: specs.length ? specs : ['Câmera 360° & Tour Virtual', 'Topografia & LiDAR'],
+    preco: parseFloat(document.getElementById('pPreco').value) || 1800,
+    avaliacao: 5.0,
+    avaliacoesTotal: 1,
+    lat: -23.5505,
+    lng: -46.6333,
+    foto: pFotoVal || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=faces',
+    social: {
+      instagram: document.getElementById('pInstagram').value.replace('@','').trim(),
+      threads: document.getElementById('pThreads').value.replace('@','').trim(),
+      linkedin: document.getElementById('pLinkedin').value.trim(),
+      facebook: document.getElementById('pFacebook').value.trim()
+    }
+  };
+
+  pilots.unshift(novo);
+  localStorage.setItem('dh_pilots_v7', JSON.stringify(pilots));
+  renderPilots(pilots);
+  
+  alert('🎉 Parabéns! Seu perfil com redes sociais e fotos 360°/timelapse foi publicado no DroneHub!');
+  switchNavTab('tabExplorar', document.getElementById('btnTabExplorar'));
+}
+
+// ——————————————————————————————————————————————————————————
+// 12. PUBLICAR DEMANDA / VAGA
+// ——————————————————————————————————————————————————————————
+function openPublishDemandModal() {
+  document.getElementById('publishDemandModal').classList.remove('hidden');
+}
+function closePublishDemandModal() {
+  document.getElementById('publishDemandModal').classList.add('hidden');
+}
+function handleDemandSubmit(e) {
+  e.preventDefault();
+  const nova = {
+    id: 'd_' + Date.now(),
+    titulo: document.getElementById('dTitulo').value,
+    local: document.getElementById('dLocal').value,
+    orcamento: document.getElementById('dOrcamento').value || 'A combinar',
+    categoria: document.getElementById('dCategoria').value,
+    contato: document.getElementById('dContato').value,
+    data: 'Publicado agora'
+  };
+
+  demands.unshift(nova);
+  localStorage.setItem('dh_demands_v7', JSON.stringify(demands));
+  renderDemands();
+  closePublishDemandModal();
+  switchNavTab('tabVagas', document.getElementById('btnTabVagas'));
+  alert('✅ Sua missão foi publicada no Mural de Vagas!');
+}
+
+// ——————————————————————————————————————————————————————————
+// 13. MAPA TÁTICO NACIONAL (SATÉLITE HD & DARK SEM API KEY)
+// ——————————————————————————————————————————————————————————
+let mapInstance = null;
+let currentTileLayer = null;
+let currentLayerType = 'satellite';
+
+function setMapLayer(type) {
+  if (!mapInstance) return;
+  currentLayerType = type;
+  if (currentTileLayer) mapInstance.removeLayer(currentTileLayer);
+  
+  const mapContainer = document.getElementById('tacticalMap');
+  const btnSat = document.getElementById('btnLayerSat');
+  const btnDark = document.getElementById('btnLayerDark');
+
+  if (type === 'satellite') {
+    mapContainer.classList.remove('map-dark-tiles');
+    currentTileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Esri Satellite HD (Livre de Chave)',
+      maxZoom: 19
+    }).addTo(mapInstance);
+    if (btnSat && btnDark) {
+      btnSat.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-cyan-500 text-slate-950 transition active:scale-95 shadow-sm';
+      btnDark.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 border border-slate-700 text-slate-300 transition active:scale-95';
+    }
+  } else {
+    mapContainer.classList.add('map-dark-tiles');
+    currentTileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(mapInstance);
+    if (btnSat && btnDark) {
+      btnSat.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-900 border border-slate-700 text-slate-300 transition active:scale-95';
+      btnDark.className = 'px-2 py-1 rounded-lg text-[10px] font-bold bg-cyan-500 text-slate-950 transition active:scale-95 shadow-sm';
+    }
+  }
+}
+
+function toggleMapModal() {
+  const modal = document.getElementById('mapModal');
+  const isNowVisible = modal.style.display === 'none' || modal.style.display === '';
+  
+  if (isNowVisible) {
+    modal.style.display = 'flex';
+    modal.style.flexDirection = 'column';
+    if (!mapInstance) {
+      setTimeout(() => {
+        mapInstance = L.map('tacticalMap', { minZoom: 2, maxZoom: 18 });
+        
+        // Camada inicial: Satélite Real de Alta Resolução (100% Livre e Gratuito)
+        setMapLayer('satellite');
+
+        // Ícone Tático de Drone (Design Limpo e Moderno de Radar, sem pinos gigantes)
+        const droneRadarIcon = L.divIcon({
+          className: 'drone-radar-marker',
+          html: `
+            <div style="position:relative;width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+              <div style="position:absolute;width:22px;height:22px;border-radius:50%;background:rgba(6,182,212,0.35);box-shadow:0 0 10px rgba(6,182,212,0.6)"></div>
+              <div style="width:12px;height:12px;border-radius:50%;background:#22d3ee;border:2px solid #ffffff;box-shadow:0 0 6px rgba(0,0,0,0.8);position:relative;z-index:2"></div>
+            </div>
+          `,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+          popupAnchor: [0, -12]
+        });
+
+        const markers = [];
+        pilots.forEach(p => {
+          const m = L.marker([p.lat, p.lng], { icon: droneRadarIcon }).addTo(mapInstance)
+            .bindPopup(`
+              <div style="font-family:Inter,sans-serif;min-width:185px;padding:2px">
+                <div style="font-weight:bold;color:#f8fafc;font-size:13px">${p.nome}</div>
+                <div style="color:#06b6d4;font-size:11px;font-weight:600;margin-top:1px">📍 ${p.cidade} - ${p.uf}</div>
+                <div style="color:#94a3b8;font-size:10px;margin:3px 0">🛸 ${p.drones[0]}</div>
+                <div style="color:#10b981;font-weight:bold;font-size:11px;margin-bottom:8px">R$ ${p.preco}/dia • ★ ${p.avaliacao} (${p.avaliacoesTotal})</div>
+                <a href="https://wa.me/55${p.zap}?text=Ol%C3%A1%20${encodeURIComponent(p.nome)},%20vi%20seu%20drone%20no%20mapa%20do%20DroneHub!" 
+                   target="_blank" 
+                   style="display:block;background:#10b981;color:#020617;text-align:center;padding:6px 10px;border-radius:8px;font-weight:bold;font-size:11px;text-decoration:none">
+                  Falar no WhatsApp
+                </a>
+              </div>
+            `);
+          markers.push(m);
+        });
+
+        // Enquadra perfeitamente apenas a área ativa (Canadá/EUA até Argentina, sem Alasca/Groelândia)
+        if (markers.length > 0) {
+          const group = L.featureGroup(markers);
+          mapInstance.fitBounds(group.getBounds(), { padding: [25, 25], maxZoom: 4 });
+        }
+      }, 150);
+    } else {
+      setTimeout(() => {
+        mapInstance.invalidateSize();
+      }, 100);
+    }
+  } else {
+    modal.style.display = 'none';
+  }
+}
+
+// Fechar modais clicando no backdrop
+document.addEventListener('click', (e) => {
+  const mapModal = document.getElementById('mapModal');
+  const escrowModal = document.getElementById('escrowModal');
+  const retaModal = document.getElementById('retaModal');
+  const streamModal = document.getElementById('streamInputModal');
+  const demandModal = document.getElementById('publishDemandModal');
+  const kpPdopModal = document.getElementById('kpPdopModal');
+  const riskWaiverModal = document.getElementById('riskWaiverModal');
+  const aeroAIModal = document.getElementById('aeroAIModal');
+  if (e.target === mapModal) toggleMapModal();
+  if (e.target === escrowModal) closeEscrowModal();
+  if (e.target === retaModal) closeRetaModal();
+  if (e.target === streamModal) toggleStreamInputModal();
+  if (e.target === demandModal) closePublishDemandModal();
+  if (e.target === kpPdopModal) closeKpPdopModal();
+  if (e.target === riskWaiverModal) closeRiskWaiverModal();
+  if (e.target === aeroAIModal) closeAeroAIModal();
+  const portfolioModal = document.getElementById('portfolioModal');
+  if (e.target === portfolioModal) closePortfolioModal();
+});
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+  renderPilots(pilots);
+  renderDemands();
+  recalcMission();
+  // Garante que o mapa começa escondido corretamente
+  document.getElementById('mapModal').style.display = 'none';
+});
+</script>
+</body>
+</html>

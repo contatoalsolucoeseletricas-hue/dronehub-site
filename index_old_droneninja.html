@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DroneNinja — RPAS Flight Dispatch & Mission Cockpit</title>
+  
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Leaflet CSS & JS for Tactical Maps -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- Chart.js for Battery Telemetry -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            cockpit: {
+              bg: '#0a0d14',
+              card: 'rgba(17, 24, 39, 0.85)',
+              border: '#1f293d',
+              cyan: '#00e5ff',
+              green: '#00e676',
+              amber: '#ffab00',
+              red: '#ff1744'
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'Courier New', 'monospace'],
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #07090e;
+      color: #e2e8f0;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(0, 229, 255, 0.05) 0%, transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+    }
+    
+    .glass-panel {
+      background: rgba(13, 19, 33, 0.82);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(0, 229, 255, 0.15);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    }
+
+    .glass-panel:hover {
+      border-color: rgba(0, 229, 255, 0.3);
+    }
+
+    .glow-cyan {
+      box-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+    }
+
+    .glow-green {
+      box-shadow: 0 0 20px rgba(0, 230, 118, 0.35);
+    }
+
+    /* Custom Leaflet Dark Mode styling */
+    .leaflet-container {
+      background-color: #0a0d14 !important;
+      font-family: inherit;
+    }
+    .leaflet-bar a {
+      background-color: #111827 !important;
+      color: #00e5ff !important;
+      border-color: #1f293d !important;
+    }
+    .leaflet-bar a:hover {
+      background-color: #1f293d !important;
+    }
+
+    /* Pulse animation */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulse-ring {
+      animation: pulse-ring 2.5s infinite ease-in-out;
+    }
+
+    /* Print styles for Flight Dispatch Release */
+    @media print {
+      body {
+        background: #fff !important;
+        color: #000 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .glass-panel {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        color: #000 !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans select-none antialiased">
+
+  <!-- ================= TOP HUD NAVBAR ================= -->
+  <header class="border-b border-cyan-950/60 bg-gray-950/80 backdrop-blur-md sticky top-0 z-50 px-4 py-2.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo & Callout -->
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-400/40 flex items-center justify-center glow-cyan">
+          <i data-lucide="navigation-2" class="w-6 h-6 text-cyan-400 rotate-45"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-black tracking-wider text-xl bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-green-400">
+              DRONENINJA
+            </span>
+            <span class="text-[10px] tracking-widest font-mono uppercase bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 px-2 py-0.5 rounded">
+              RPAS DISPATCH
+            </span>
+          </div>
+          <p class="text-xs text-gray-400 font-mono flex items-center gap-1.5">
+            <span class="inline-block w-2 h-2 rounded-full bg-green-400 animate-ping"></span>
+            SYS STATUS: ONLINE <span class="text-gray-600">|</span> DECEA SARPAS: CONECTADO
+          </p>
+        </div>
+      </div>
+
+      <!-- Aircraft & Flight Mode Selector -->
+      <div class="hidden md:flex items-center gap-3">
+        <div class="bg-gray-900/90 border border-gray-800 rounded-lg px-3 py-1.5 flex items-center gap-2">
+          <i data-lucide="plane" class="w-4 h-4 text-cyan-400"></i>
+          <span class="text-xs text-gray-400">Aeronave:</span>
+          <select id="aircraftSelect" class="bg-transparent text-xs text-cyan-300 font-mono focus:outline-none cursor-pointer">
+            <option value="m350" class="bg-gray-900 text-gray-200">DJI Matrice 350 RTK (PP-XYZ)</option>
+            <option value="m3e" class="bg-gray-900 text-gray-200">DJI Mavic 3 Enterprise (PR-DRN)</option>
+            <option value="wingtra" class="bg-gray-900 text-gray-200">WingtraOne GEN II VTOL (PS-MAP)</option>
+            <option value="custom" class="bg-gray-900 text-gray-200">Custom Hexa ArduPilot (PT-HEX)</option>
+          </select>
+        </div>
+
+        <div class="bg-gray-900/90 border border-gray-800 rounded-lg px-3 py-1.5 font-mono text-xs flex items-center gap-2 text-gray-300">
+          <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+          <span id="utcClock">00:00:00 UTC</span>
+          <span class="text-gray-600">|</span>
+          <span id="localClock" class="text-cyan-400">00:00:00 LMT</span>
+        </div>
+      </div>
+
+      <!-- Mode Switcher: Tablet vs Mobile -->
+      <div class="flex items-center gap-2">
+        <div class="bg-gray-900/90 border border-gray-800 p-1 rounded-xl flex items-center">
+          <button id="btnViewTablet" onclick="switchView('tablet')" class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+            <i data-lucide="tablet" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Tablet Dispatch</span>
+          </button>
+          <button id="btnViewMobile" onclick="switchView('mobile')" class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-gray-400 hover:text-gray-200">
+            <i data-lucide="smartphone" class="w-4 h-4"></i>
+            <span class="hidden sm:inline">Mobile Preflight</span>
+          </button>
+        </div>
+
+        <button onclick="window.print()" title="Imprimir Despacho de Voo" class="p-2 bg-gray-900 hover:bg-gray-800 border border-gray-800 rounded-lg text-gray-300 hover:text-cyan-400 transition">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 space-y-4">
+
+    <!-- ================= VIEW 1: TABLET DISPATCH COCKPIT ================= -->
+    <div id="viewTablet" class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      
+      <!-- LEFT SECTION: TACTICAL MAP & FLIGHT CORRIDOR (7 Cols) -->
+      <div class="lg:col-span-7 flex flex-col space-y-4">
+        
+        <!-- Map Card -->
+        <div class="glass-panel rounded-2xl p-4 flex-1 flex flex-col relative overflow-hidden">
+          
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+              <h2 class="text-sm font-semibold tracking-wider text-gray-200 uppercase font-mono">
+                Mapa Operacional & Restrições de Espaço Aéreo
+              </h2>
+            </div>
+            
+            <div class="flex items-center gap-2 text-xs">
+              <span class="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800 font-mono">
+                SARPAS: LIVRE
+              </span>
+              <span class="px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800 font-mono">
+                VLOS &le; 120m
+              </span>
+            </div>
+          </div>
+
+          <!-- Leaflet Tactical Map Canvas -->
+          <div id="tacticalMap" class="w-full h-[430px] rounded-xl border border-gray-800 relative z-10"></div>
+
+          <!-- Map Footer Stats Overlay -->
+          <div class="mt-3 grid grid-cols-4 gap-2 pt-2 border-t border-gray-800/80 text-center font-mono text-xs">
+            <div class="bg-gray-950/40 p-2 rounded-lg border border-gray-900">
+              <span class="text-gray-500 block text-[10px]">ÁREA DE COBERTURA</span>
+              <span class="text-cyan-400 font-bold" id="mapArea">48.5 ha</span>
+            </div>
+            <div class="bg-gray-950/40 p-2 rounded-lg border border-gray-900">
+              <span class="text-gray-500 block text-[10px]">ALTITUDE AGL</span>
+              <span class="text-green-400 font-bold" id="mapAlt">100 m</span>
+            </div>
+            <div class="bg-gray-950/40 p-2 rounded-lg border border-gray-900">
+              <span class="text-gray-500 block text-[10px]">DISTÂNCIA TOTAL</span>
+              <span class="text-amber-400 font-bold" id="mapDist">18.4 km</span>
+            </div>
+            <div class="bg-gray-950/40 p-2 rounded-lg border border-gray-900">
+              <span class="text-gray-500 block text-[10px]">HELIPONTO MAIS PRÓXIMO</span>
+              <span class="text-emerald-400 font-bold">4.2 km (Seguro)</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Photogrammetry Mission Calculator -->
+        <div class="glass-panel rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-3 border-b border-gray-800 pb-2">
+            <h3 class="text-xs font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+              <i data-lucide="sliders" class="w-4 h-4"></i> Calculadora de Missão & GSD (Fotogrametria)
+            </h3>
+            <span class="text-[11px] text-gray-400 font-mono">Sensor: Zenmuse P1 (Full Frame 45MP)</span>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div>
+              <label class="text-gray-400 block mb-1">Altura de Voo (AGL): <span id="valAgl" class="text-cyan-400 font-mono font-bold">100m</span></label>
+              <input type="range" id="inputAgl" min="30" max="120" value="100" class="w-full accent-cyan-400 cursor-pointer" oninput="recalcMission()">
+            </div>
+            <div>
+              <label class="text-gray-400 block mb-1">Sobreposição Frontal: <span id="valOverlapF" class="text-cyan-400 font-mono font-bold">75%</span></label>
+              <input type="range" id="inputOverlapF" min="60" max="85" value="75" class="w-full accent-cyan-400 cursor-pointer" oninput="recalcMission()">
+            </div>
+            <div>
+              <label class="text-gray-400 block mb-1">Sobreposição Lateral: <span id="valOverlapL" class="text-cyan-400 font-mono font-bold">70%</span></label>
+              <input type="range" id="inputOverlapL" min="50" max="80" value="70" class="w-full accent-cyan-400 cursor-pointer" oninput="recalcMission()">
+            </div>
+            <div>
+              <label class="text-gray-400 block mb-1">Velocidade Voo: <span id="valSpeed" class="text-cyan-400 font-mono font-bold">12 m/s</span></label>
+              <input type="range" id="inputSpeed" min="5" max="18" value="12" class="w-full accent-cyan-400 cursor-pointer" oninput="recalcMission()">
+            </div>
+          </div>
+
+          <!-- Calculated Mission Outputs -->
+          <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 border-t border-gray-800 text-center font-mono">
+            <div class="p-2 rounded bg-gray-900/70 border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">GSD ESTIMADO</span>
+              <span class="text-sm font-bold text-cyan-300" id="resGsd">1.25 cm/px</span>
+            </div>
+            <div class="p-2 rounded bg-gray-900/70 border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">DISPAROS (FOTOS)</span>
+              <span class="text-sm font-bold text-gray-200" id="resPhotos">420 fotos</span>
+            </div>
+            <div class="p-2 rounded bg-gray-900/70 border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">TEMPO DE MISSÃO</span>
+              <span class="text-sm font-bold text-amber-300" id="resFlightTime">26 min</span>
+            </div>
+            <div class="p-2 rounded bg-gray-900/70 border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">BATERIAS NECESSÁRIAS</span>
+              <span class="text-sm font-bold text-green-400" id="resBatts">1 Par (TB65)</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- RIGHT SECTION: GO/NO-GO SCORE, MICRO-MET & ENERGY BUDGET (5 Cols) -->
+      <div class="lg:col-span-5 flex flex-col space-y-4">
+        
+        <!-- CARD 1: GO / NO-GO EXECUTIVE SCORE (The JetNinja Core) -->
+        <div class="glass-panel rounded-2xl p-4 border-l-4 border-l-emerald-400">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-mono uppercase text-gray-400">Análise de Despacho & Risco</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800">
+              DESPACHO APROVADO
+            </span>
+          </div>
+
+          <div class="flex items-center gap-4 my-2">
+            <!-- Score Ring Visualizer -->
+            <div class="relative w-20 h-20 flex-shrink-0 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <path class="text-gray-800" stroke-width="3.5" stroke="currentColor" fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path id="scoreCircle" class="text-emerald-400" stroke-dasharray="94, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center font-mono">
+                <span class="text-xl font-black text-emerald-400" id="scoreText">94%</span>
+                <span class="text-[9px] text-gray-400">SCORE</span>
+              </div>
+            </div>
+
+            <!-- Bullet reasons -->
+            <div class="flex-1 space-y-1 text-xs font-mono">
+              <div class="flex items-center justify-between text-gray-300">
+                <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Vento a 120m:</span>
+                <span class="text-emerald-400">18 km/h (&lt; 43 km/h max)</span>
+              </div>
+              <div class="flex items-center justify-between text-gray-300">
+                <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Clima Solar (KP):</span>
+                <span class="text-emerald-400">KP 1.8 (Ionosphere Quiet)</span>
+              </div>
+              <div class="flex items-center justify-between text-gray-300">
+                <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Espaço Aéreo:</span>
+                <span class="text-emerald-400">Fora de CTR / Heliponto 4km</span>
+              </div>
+              <div class="flex items-center justify-between text-gray-300">
+                <span class="flex items-center gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i> Baterias:</span>
+                <span class="text-emerald-400">SoH 98% (Delta 11mV)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 2: MICROMETEOROLOGIA EM CAMADAS (Micro-MET) & CLIMA ESPACIAL -->
+        <div class="glass-panel rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-3 border-b border-gray-800 pb-2">
+            <h3 class="text-xs font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+              <i data-lucide="wind" class="w-4 h-4"></i> Micro-MET (Vento em Altitude) & Clima Espacial
+            </h3>
+            <span class="text-[10px] text-cyan-400 bg-cyan-950/60 border border-cyan-800 px-2 py-0.5 rounded font-mono">
+              Fonte: Open-Meteo & NOAA
+            </span>
+          </div>
+
+          <!-- Wind Aloft Stratification Table -->
+          <div class="space-y-1.5 text-xs font-mono">
+            <div class="flex items-center justify-between p-1.5 rounded bg-gray-950/50 border border-gray-800">
+              <span class="text-gray-400">10m (Solo)</span>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-300">Dir: 120&deg; (SE)</span>
+                <span class="text-cyan-300 font-bold">11 km/h</span>
+                <span class="text-gray-500 text-[10px]">Raj: 16 km/h</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-1.5 rounded bg-gray-950/50 border border-gray-800">
+              <span class="text-gray-400">50m AGL</span>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-300">Dir: 130&deg; (SE)</span>
+                <span class="text-cyan-300 font-bold">15 km/h</span>
+                <span class="text-gray-500 text-[10px]">Raj: 20 km/h</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-1.5 rounded bg-gray-950/50 border border-gray-800">
+              <span class="text-gray-400">100m AGL</span>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-300">Dir: 135&deg; (SE)</span>
+                <span class="text-amber-400 font-bold">18 km/h</span>
+                <span class="text-gray-500 text-[10px]">Raj: 24 km/h</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between p-1.5 rounded bg-cyan-950/30 border border-cyan-800/80">
+              <span class="text-cyan-300 font-bold">120m (Teto VLOS)</span>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-300">Dir: 140&deg; (SE)</span>
+                <span class="text-amber-400 font-bold">21 km/h</span>
+                <span class="text-amber-500 text-[10px]">Raj: 28 km/h</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Space Weather & Satellite Geometry -->
+          <div class="mt-3 grid grid-cols-3 gap-2 text-center font-mono text-xs">
+            <div class="bg-gray-950/60 p-2 rounded-lg border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">ÍNDICE SOLAR (KP)</span>
+              <span class="text-emerald-400 font-bold text-sm">KP 1.8</span>
+              <span class="text-[9px] text-gray-500 block">GNSS Estável</span>
+            </div>
+            <div class="bg-gray-950/60 p-2 rounded-lg border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">SATÉLITES FIX</span>
+              <span class="text-cyan-400 font-bold text-sm">26 SAT</span>
+              <span class="text-[9px] text-gray-500 block">GPS + GAL + GLO</span>
+            </div>
+            <div class="bg-gray-950/60 p-2 rounded-lg border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">DILUIÇÃO (PDOP)</span>
+              <span class="text-emerald-400 font-bold text-sm">1.1</span>
+              <span class="text-[9px] text-gray-500 block">Precisão Centimétrica</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- CARD 3: ENERGY BUDGET & RTH SEGURO -->
+        <div class="glass-panel rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-3 border-b border-gray-800 pb-2">
+            <h3 class="text-xs font-mono uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-4 h-4"></i> Energy Budget & PNR (Retorno Seguro)
+            </h3>
+            <span class="text-[11px] text-gray-400 font-mono">Baterias TB65 (5880 mAh / 263 Wh)</span>
+          </div>
+
+          <!-- Battery Level Progress Bar with RTH threshold -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs font-mono">
+              <span class="text-gray-400">Capacidade da Carga: <strong class="text-emerald-400">100%</strong></span>
+              <span class="text-amber-400 font-bold">Gatilho RTH: 24%</span>
+            </div>
+            <div class="w-full bg-gray-950 rounded-full h-4 p-0.5 border border-gray-800 relative overflow-hidden">
+              <!-- RTH Marker line -->
+              <div class="absolute left-[24%] top-0 bottom-0 w-0.5 bg-amber-400 z-10" title="Gatilho RTH"></div>
+              <div class="bg-gradient-to-r from-emerald-500 to-cyan-400 h-full rounded-full transition-all" style="width: 100%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-gray-500 font-mono pt-0.5">
+              <span>0% (Corte)</span>
+              <span class="text-amber-400">24% (Compensação Vento Retorno)</span>
+              <span>100% (Cheia)</span>
+            </div>
+          </div>
+
+          <div class="mt-3 grid grid-cols-3 gap-2 text-center font-mono text-xs">
+            <div class="bg-gray-950/60 p-2 rounded border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">POTÊNCIA MÉDIA</span>
+              <span class="text-cyan-400 font-bold">380 Watts</span>
+            </div>
+            <div class="bg-gray-950/60 p-2 rounded border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">AUTONOMIA TOTAL</span>
+              <span class="text-gray-200 font-bold">38 min</span>
+            </div>
+            <div class="bg-gray-950/60 p-2 rounded border border-gray-800">
+              <span class="text-gray-500 text-[10px] block">MARGEM DE SEGURANÇA</span>
+              <span class="text-green-400 font-bold">+12 min</span>
+            </div>
+          </div>
+
+          <!-- Action Button: Gerar Relatório de Despacho -->
+          <button onclick="openBriefingModal()" class="mt-3 w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 font-mono text-xs font-bold text-white tracking-wider flex items-center justify-center gap-2 glow-cyan transition">
+            <i data-lucide="file-text" class="w-4 h-4"></i> GERAR BRIEFING DE DESPACHO AERONÁUTICO
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ================= VIEW 2: MOBILE PREFLIGHT & BMS VIEW ================= -->
+    <div id="viewMobile" class="hidden max-w-md mx-auto space-y-4">
+      
+      <!-- Mobile Device Header Card -->
+      <div class="glass-panel rounded-2xl p-4 border-t-2 border-cyan-400">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-mono tracking-widest text-cyan-400 uppercase">TELEMETRIA DE CAMPO</span>
+            <h2 class="text-base font-bold text-gray-100 font-mono">DJI Matrice 350 RTK</h2>
+            <p class="text-xs text-gray-400">Prefixo: PP-XYZ &bull; Piloto: José &bull; Matrícula: 2026-BR</p>
+          </div>
+          <div class="text-right font-mono">
+            <span class="px-2 py-1 rounded bg-green-950 text-green-400 border border-green-800 text-xs font-bold">
+              CONECTADO
+            </span>
+            <span class="block text-[10px] text-gray-500 mt-1">C2 LINK: 99%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Smart Battery BMS (Cell Balance & Health) -->
+      <div class="glass-panel rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="battery-charging" class="w-5 h-5 text-cyan-400"></i>
+            <h3 class="text-xs font-mono font-bold text-gray-200 uppercase">Diagnóstico das Células LiPo (TB65)</h3>
+          </div>
+          <span class="text-xs font-mono text-green-400 font-bold">SoH: 98%</span>
+        </div>
+
+        <!-- 6-Cell Voltage Bars -->
+        <div class="grid grid-cols-6 gap-1.5 text-center font-mono">
+          <div class="bg-gray-950 p-2 rounded border border-gray-800 flex flex-col items-center">
+            <span class="text-[9px] text-gray-500">C1</span>
+            <div class="w-full bg-gray-900 h-16 rounded my-1 relative flex items-end">
+              <div class="w-full bg-emerald-400 rounded-b transition-all" style="height: 98%"></div>
+            </div>
+            <span class="text-[10px] text-emerald-300 font-bold">4.20V</span>
+          </div>
+          <div class="bg-gray-950 p-2 rounded border border-gray-800 flex flex-col items-center">
+            <span class="text-[9px] text-gray-500">C2</span>
+            <div class="w-full bg-gray-900 h-16 rounded my-1 relative flex items-end">
+              <div class="w-full bg-emerald-400 rounded-b transition-all" style="height: 98%"></div>
+            </div>
+            <span class="text-[10px] text-emerald-300 font-bold">4.20V</span>
+          </div>
+          <div class="bg-gray-950 p-2 rounded border border-gray-800 flex flex-col items-center">
+            <span class="text-[9px] text-gray-500">C3</span>
+            <div class="w-full bg-gray-900 h-16 rounded my-1 relative flex items-end">
+              <div class="w-full bg-emerald-400 rounded-b transition-all" style="height: 97%"></div>
+            </div>
+            <span class="text-[10px] text-emerald-300 font-bold">4.19V</span>
+          </div>
+          <div class="bg-gray-950 p-2 rounded border border-gray-800 flex flex-col items-center">
+            <span class="text-[9px] text-gray-500">C4</span>
+            <div class="w-full bg-gray-900 h-16 rounded my-1 relative flex items-end">
+              <div class="w-full bg-emerald-400 rounded-b transition-all" style="height: 98%"></div>
+            </div>
+            <span class="text-[10px] text-emerald-300 font-bold">4.20V</span>
+          </div>
+          <div class="bg-gray-950 p-2 rounded border border-gray-800 flex flex-col items-center">
+            <span class="text-[9px] text-gray-500">C5</span>
+            <div class="w-full bg-gray-900 h-16 rounded my-1 relative flex items-end">
+              <div class="w-full bg-emerald-400 rounded-b transition-all" style="height: 98%"></div>
+            </div>
+            <span class="text-[10px] text-emerald-300 font-bold">4.20V</span>
+          </div>
+          <div class="bg-gray-950 p-2 rounded border border-gray-800 flex flex-col items-center">
+            <span class="text-[9px] text-gray-500">C6</span>
+            <div class="w-full bg-gray-900 h-16 rounded my-1 relative flex items-end">
+              <div class="w-full bg-emerald-400 rounded-b transition-all" style="height: 97%"></div>
+            </div>
+            <span class="text-[10px] text-emerald-300 font-bold">4.19V</span>
+          </div>
+        </div>
+
+        <!-- Cell Delta & Cycles Info -->
+        <div class="grid grid-cols-3 gap-2 text-center font-mono text-xs pt-1">
+          <div class="bg-gray-900/60 p-2 rounded border border-gray-800">
+            <span class="text-gray-500 text-[10px] block">DESBALANCEAMENTO</span>
+            <span class="text-emerald-400 font-bold">&Delta; 11 mV</span>
+            <span class="text-[9px] text-gray-500 block">&lt; 25mV Tolerância</span>
+          </div>
+          <div class="bg-gray-900/60 p-2 rounded border border-gray-800">
+            <span class="text-gray-500 text-[10px] block">CICLOS DE CARGA</span>
+            <span class="text-cyan-400 font-bold">42 Ciclos</span>
+            <span class="text-[9px] text-gray-500 block">Vida Útil: 400</span>
+          </div>
+          <div class="bg-gray-900/60 p-2 rounded border border-gray-800">
+            <span class="text-gray-500 text-[10px] block">TEMP. BATERIA</span>
+            <span class="text-amber-400 font-bold">31.5 &deg;C</span>
+            <span class="text-[9px] text-gray-500 block">Ideal: 20-40&deg;C</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Point of No Return (PNR) & Headwind Monitor -->
+      <div class="glass-panel rounded-2xl p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-mono uppercase text-gray-400 flex items-center gap-1.5">
+            <i data-lucide="compass" class="w-4 h-4 text-amber-400"></i> Ponto de Não Retorno (PNR)
+          </span>
+          <span class="text-xs font-mono text-amber-400 font-bold">T-Minus 18:24 min</span>
+        </div>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          Com o vento contrário atual de <strong class="text-gray-200">18 km/h</strong> na perna de volta, o comando de RTH automático será travado caso a autonomia útil desça de <strong>24%</strong>.
+        </p>
+      </div>
+
+      <!-- Preflight Safety Checklist with Hardware Interlock -->
+      <div class="glass-panel rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+          <h3 class="text-xs font-mono font-bold text-gray-200 uppercase flex items-center gap-1.5">
+            <i data-lucide="check-square" class="w-4 h-4 text-cyan-400"></i> Checklist Obrigatório Pré-Decolagem
+          </h3>
+          <span id="checkProgress" class="text-xs font-mono text-amber-400">0/5</span>
+        </div>
+
+        <div class="space-y-2 text-xs font-mono">
+          <label class="flex items-center gap-3 p-2 rounded bg-gray-950/60 border border-gray-800 hover:border-cyan-800/80 cursor-pointer">
+            <input type="checkbox" class="chk-preflight w-4 h-4 rounded accent-cyan-400" onchange="updateChecklist()">
+            <span>Hélices travadas, sem trincas ou folgas mecânicas</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 rounded bg-gray-950/60 border border-gray-800 hover:border-cyan-800/80 cursor-pointer">
+            <input type="checkbox" class="chk-preflight w-4 h-4 rounded accent-cyan-400" onchange="updateChecklist()">
+            <span>Bússola & IMU calibrados (Offset magnético &lt; 0.4)</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 rounded bg-gray-950/60 border border-gray-800 hover:border-cyan-800/80 cursor-pointer">
+            <input type="checkbox" class="chk-preflight w-4 h-4 rounded accent-cyan-400" onchange="updateChecklist()">
+            <span>SARPAS DECEA aprovado (Doc: SP-2026-9941)</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 rounded bg-gray-950/60 border border-gray-800 hover:border-cyan-800/80 cursor-pointer">
+            <input type="checkbox" class="chk-preflight w-4 h-4 rounded accent-cyan-400" onchange="updateChecklist()">
+            <span>Link C2 & Vídeo HD testados (Canal limpo 5.8 GHz)</span>
+          </label>
+          <label class="flex items-center gap-3 p-2 rounded bg-gray-950/60 border border-gray-800 hover:border-cyan-800/80 cursor-pointer">
+            <input type="checkbox" class="chk-preflight w-4 h-4 rounded accent-cyan-400" onchange="updateChecklist()">
+            <span>Área de decolagem isolada de pessoas não anuentes</span>
+          </label>
+        </div>
+
+        <!-- Arm Motors Button (Interlocked) -->
+        <button id="btnArmMotors" disabled onclick="armMotorsAction()" class="w-full py-3 rounded-xl bg-gray-800 text-gray-500 font-mono font-bold text-xs tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 cursor-not-allowed">
+          <i data-lucide="lock" class="w-4 h-4"></i> COMPLETE O CHECKLIST PARA ARMAR MOTORES
+        </button>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ================= FLIGHT BRIEFING MODAL (PRINT READY) ================= -->
+  <div id="briefingModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="glass-panel max-w-2xl w-full rounded-2xl p-6 border border-cyan-400/40 space-y-4 max-h-[90vh] overflow-y-auto">
+      
+      <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+        <div>
+          <span class="text-[10px] font-mono text-cyan-400 uppercase tracking-widest">DRONENINJA DISPATCH SUITE</span>
+          <h2 class="text-lg font-bold text-gray-100 font-mono">RELATÓRIO DE DESPACHO AERONÁUTICO (RPAS)</h2>
+        </div>
+        <button onclick="closeBriefingModal()" class="text-gray-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs font-mono text-gray-300">
+        <div class="grid grid-cols-2 gap-2 bg-gray-950 p-3 rounded-lg border border-gray-800">
+          <div><strong class="text-gray-500">OPERAÇÃO:</strong> Fotogrametria Talhão 4</div>
+          <div><strong class="text-gray-500">DATA/HORA:</strong> <span id="modalDate">16/11/2026 10:50 LMT</span></div>
+          <div><strong class="text-gray-500">AERONAVE:</strong> Matrice 350 RTK (PP-XYZ)</div>
+          <div><strong class="text-gray-500">PILOTO EM COMANDO:</strong> José (SISANT 84192)</div>
+          <div><strong class="text-gray-500">ALTITUDE AGL:</strong> 100 metros</div>
+          <div><strong class="text-gray-500">ÁREA TOTAL:</strong> 48.5 Hectares</div>
+        </div>
+
+        <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
+          <h4 class="text-cyan-400 font-bold mb-1">CONDIÇÕES METEOROLÓGICAS NO DESPACHO:</h4>
+          <p>&bull; Vento Solo: 11 km/h &bull; Vento a 120m AGL: 21 km/h (Rajada 28 km/h) &bull; Direção: 140&deg;</p>
+          <p>&bull; Clima Espacial (KP Index): 1.8 (Nominal) &bull; Satélites Visíveis: 26 GNSS &bull; PDOP: 1.1</p>
+        </div>
+
+        <div class="bg-gray-950 p-3 rounded-lg border border-gray-800">
+          <h4 class="text-emerald-400 font-bold mb-1">AVALIAÇÃO DE RISCO & PARECER GO/NO-GO:</h4>
+          <p class="text-emerald-300 font-bold">PARECER: [ GO / APROVADO ] — SCORE DE SEGURANÇA 94%</p>
+          <p class="text-gray-400 mt-1">Nenhum fator impeditivo detectado. Espaço aéreo livre de tráfego IFR/VFR conhecido no raio de 5 NM. Baterias com balanceamento milivolt nominal.</p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-800">
+        <button onclick="closeBriefingModal()" class="px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 font-mono text-xs">
+          Fechar
+        </button>
+        <button onclick="window.print()" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold flex items-center gap-1.5">
+          <i data-lucide="printer" class="w-4 h-4"></i> Imprimir / Salvar PDF
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= SCRIPTS ================= -->
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Digital Clocks (UTC & Local)
+    function updateClocks() {
+      const now = new Date();
+      document.getElementById('utcClock').innerText = now.toUTCString().slice(17, 25) + ' UTC';
+      document.getElementById('localClock').innerText = now.toTimeString().slice(0, 8) + ' LMT';
+      const modalDate = document.getElementById('modalDate');
+      if (modalDate) {
+        modalDate.innerText = now.toLocaleDateString('pt-BR') + ' ' + now.toTimeString().slice(0, 5) + ' LMT';
+      }
+    }
+    setInterval(updateClocks, 1000);
+    updateClocks();
+
+    // View Switcher (Tablet vs Mobile)
+    function switchView(view) {
+      const tabletView = document.getElementById('viewTablet');
+      const mobileView = document.getElementById('viewMobile');
+      const btnTablet = document.getElementById('btnViewTablet');
+      const btnMobile = document.getElementById('btnViewMobile');
+
+      if (view === 'tablet') {
+        tabletView.classList.remove('hidden');
+        mobileView.classList.add('hidden');
+        btnTablet.className = 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40';
+        btnMobile.className = 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-gray-400 hover:text-gray-200';
+        setTimeout(() => map.invalidateSize(), 200);
+      } else {
+        tabletView.classList.add('hidden');
+        mobileView.classList.remove('hidden');
+        btnMobile.className = 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40';
+        btnTablet.className = 'px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all text-gray-400 hover:text-gray-200';
+      }
+    }
+
+    // Modal Operations
+    function openBriefingModal() {
+      document.getElementById('briefingModal').classList.remove('hidden');
+    }
+    function closeBriefingModal() {
+      document.getElementById('briefingModal').classList.add('hidden');
+    }
+
+    // Interactive Photogrammetry Calculation
+    function recalcMission() {
+      const agl = parseInt(document.getElementById('inputAgl').value);
+      const overlapF = parseInt(document.getElementById('inputOverlapF').value);
+      const overlapL = parseInt(document.getElementById('inputOverlapL').value);
+      const speed = parseInt(document.getElementById('inputSpeed').value);
+
+      document.getElementById('valAgl').innerText = agl + 'm';
+      document.getElementById('valOverlapF').innerText = overlapF + '%';
+      document.getElementById('valOverlapL').innerText = overlapL + '%';
+      document.getElementById('valSpeed').innerText = speed + ' m/s';
+      document.getElementById('mapAlt').innerText = agl + ' m';
+
+      // Zenmuse P1 specs: Sensor 35.9 x 24mm, 45MP (8192x5460), Lens 35mm
+      // GSD = (SensorWidth * AGL * 100) / (FocalLength * ImageWidth)
+      const gsd = ((35.9 * agl * 100) / (35 * 8192)).toFixed(2);
+      document.getElementById('resGsd').innerText = gsd + ' cm/px';
+
+      // Photogrammetry flight time & photo count estimate for 48.5 ha
+      const totalDistanceMeters = (485000 / (agl * 0.7)) * 1.35; // approx flight path
+      const flightTimeMin = Math.round((totalDistanceMeters / speed) / 60) + 4; // plus turns
+      const photoIntervalSec = (agl * (1 - overlapF/100) * 1.5) / speed;
+      const totalPhotos = Math.round((flightTimeMin * 60) / Math.max(1.8, photoIntervalSec));
+
+      document.getElementById('resFlightTime').innerText = flightTimeMin + ' min';
+      document.getElementById('resPhotos').innerText = totalPhotos + ' fotos';
+      document.getElementById('mapDist').innerText = (totalDistanceMeters / 1000).toFixed(1) + ' km';
+
+      // Battery count calculation based on 32 min usable per pair
+      const pairsNeeded = Math.ceil(flightTimeMin / 28);
+      document.getElementById('resBatts').innerText = pairsNeeded === 1 ? '1 Par (TB65)' : `${pairsNeeded} Pares (TB65)`;
+    }
+
+    // Checklist Logic & Arming Interlock
+    function updateChecklist() {
+      const checkboxes = document.querySelectorAll('.chk-preflight');
+      const checked = document.querySelectorAll('.chk-preflight:checked').length;
+      document.getElementById('checkProgress').innerText = `${checked}/${checkboxes.length}`;
+
+      const btnArm = document.getElementById('btnArmMotors');
+      if (checked === checkboxes.length) {
+        btnArm.disabled = false;
+        btnArm.className = 'w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-mono font-bold text-xs tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 glow-green cursor-pointer shadow-lg';
+        btnArm.innerHTML = '<i data-lucide="shield-check" class="w-4 h-4"></i> MOTORES LIBERADOS — CLIQUE PARA ARMAR';
+      } else {
+        btnArm.disabled = true;
+        btnArm.className = 'w-full py-3 rounded-xl bg-gray-800 text-gray-500 font-mono font-bold text-xs tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-2 cursor-not-allowed';
+        btnArm.innerHTML = '<i data-lucide="lock" class="w-4 h-4"></i> COMPLETE O CHECKLIST PARA ARMAR MOTORES';
+      }
+      lucide.createIcons();
+    }
+
+    function armMotorsAction() {
+      alert("⚠️ PROCEDIMENTO OPERACIONAL PADRÃO:\n\n1. Área isolada confirmada.\n2. Home Point travado com 26 satélites RTK fixados.\n3. Motores armados! Iniciando subida para 100m AGL.");
+    }
+
+    // ================= LEAFLET MAP INITIALIZATION =================
+    let map;
+    window.addEventListener('DOMContentLoaded', () => {
+      // Coordinates centered near an open field / rural area for mission simulation (-23.50, -47.00)
+      const centerLat = -23.518;
+      const centerLng = -47.125;
+
+      map = L.map('tacticalMap', {
+        attributionControl: false,
+        zoomControl: true
+      }).setView([centerLat, centerLng], 14);
+
+      // Satellite Imagery Tile Layer (Esri World Imagery)
+      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19
+      }).addTo(map);
+
+      // Home Point Marker (Cyan pulse)
+      const homeIcon = L.divIcon({
+        className: 'custom-home-icon',
+        html: `<div class="w-5 h-5 rounded-full bg-cyan-400 border-2 border-white shadow-lg pulse-ring flex items-center justify-center text-[10px] font-bold text-black font-mono">H</div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      L.marker([centerLat, centerLng], { icon: homeIcon }).addTo(map).bindPopup('<b>HOME POINT (Decolagem)</b><br>Altitude: 620m MSL<br>RTK Base Fixada');
+
+      // Mission Polygon (Talhão 4 - 48.5 Hectares)
+      const polygonCoords = [
+        [centerLat + 0.003, centerLng - 0.008],
+        [centerLat + 0.009, centerLng + 0.002],
+        [centerLat + 0.005, centerLng + 0.009],
+        [centerLat - 0.004, centerLng + 0.006],
+        [centerLat - 0.002, centerLng - 0.006]
+      ];
+
+      const missionPolygon = L.polygon(polygonCoords, {
+        color: '#00e5ff',
+        weight: 2,
+        fillColor: '#00e5ff',
+        fillOpacity: 0.15,
+        dashArray: '4, 6'
+      }).addTo(map);
+      missionPolygon.bindPopup('<b>Poligonal da Missão: Talhão 4</b><br>Área: 48.5 Hectares<br>GSD Alvo: 1.25 cm/px');
+
+      // Photogrammetry Lawn-Mower Grid (Flight Lines)
+      const gridLines = [
+        [[centerLat + 0.002, centerLng - 0.007], [centerLat + 0.008, centerLng + 0.001]],
+        [[centerLat + 0.001, centerLng - 0.005], [centerLat + 0.007, centerLng + 0.003]],
+        [[centerLat - 0.000, centerLng - 0.003], [centerLat + 0.006, centerLng + 0.005]],
+        [[centerLat - 0.001, centerLng - 0.001], [centerLat + 0.005, centerLng + 0.007]],
+        [[centerLat - 0.002, centerLng + 0.001], [centerLat + 0.003, centerLng + 0.008]],
+      ];
+
+      gridLines.forEach(line => {
+        L.polyline(line, {
+          color: '#00e676',
+          weight: 2,
+          opacity: 0.8
+        }).addTo(map);
+      });
+
+      // Helipad Restriction Zone Buffer (4.2 km away represented with red border)
+      const helipadLat = centerLat - 0.032;
+      const helipadLng = centerLng - 0.025;
+      L.circle([helipadLat, helipadLng], {
+        radius: 1500, // 1.5 km protection ring
+        color: '#ff1744',
+        weight: 1.5,
+        fillColor: '#ff1744',
+        fillOpacity: 0.1,
+        dashArray: '5, 5'
+      }).addTo(map).bindPopup('<b>ZONA DE RESTRIÇÃO AEROPORTUÁRIA (DECEA)</b><br>Heliponto Privado SBPR<br>Afastamento atual: 4.2 km (SEGURO)');
+
+      recalcMission();
+    });
+  </script>
+</body>
+</html>
