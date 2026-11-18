@@ -40,6 +40,7 @@ tailwind.config = {
 
 <style>
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { overflow-x: hidden; max-width: 100vw; }
 :root {
   --bg-primary: #020617;
   --bg-secondary: #0a0f1e;
@@ -1364,7 +1365,7 @@ button, input, select, a { touch-action: manipulation; }
       <!-- Conteúdo da Aba Timelapse (Evolução Temporal de Obras) -->
       <div id="portContentTimelapse" class="space-y-2.5 hidden">
         <div class="relative w-full aspect-video rounded-xl overflow-hidden border border-amber-500/40 bg-slate-950 shadow-inner">
-          <img id="portTimelapseImg" src="https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=1000&auto=format&fit=crop" 
+          <img id="portTimelapseImg" src="timelapse_fase1.svg" 
                class="w-full h-full object-cover transition-opacity duration-300">
 
           <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-lg border border-amber-500/50 flex items-center gap-1.5 font-mono text-[10px] text-amber-300 font-bold">
@@ -2633,7 +2634,7 @@ function setTimelapsePhase(phase) {
 
   if (phase === 1) {
     b1.className = 'px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-bold';
-    img.src = 'https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=1000&auto=format&fit=crop';
+    img.src = 'timelapse_fase1.svg';
   } else if (phase === 2) {
     b2.className = 'px-2 py-0.5 rounded bg-amber-500 text-slate-950 font-bold';
     img.src = 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1000&auto=format&fit=crop';
