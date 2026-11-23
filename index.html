@@ -62,7 +62,8 @@ body {
   overflow-x: hidden;
 }
 #app {
-  max-width: 440px;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
   display: flex;
@@ -70,6 +71,11 @@ body {
   background: var(--bg-primary);
   position: relative;
   box-shadow: 0 0 60px rgba(0,0,0,0.9);
+}
+@media (max-width: 640px) {
+  #app {
+    max-width: 440px;
+  }
 }
 ::-webkit-scrollbar { width: 0; height: 0; }
 .card {
@@ -84,7 +90,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  max-width: 440px;
+  max-width: 1200px;
   background: rgba(2, 6, 23, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -342,7 +348,7 @@ button, input, select, a { touch-action: manipulation; }
               <span>●</span> Sessão Corporativa B2B Ativa
             </div>
             <h3 class="text-base sm:text-lg font-bold text-white mt-1">Portal do Cliente B2B &amp; Downloads de Missões</h3>
-            <p id="userIdentidadeDrone" class="text-[10px] text-cyan-300 font-mono">Conectado: andre8166@hotmail.com · Acesso Diretor Técnico</p>
+            <p id="userIdentidadeDrone" class="text-[10px] text-cyan-300 font-mono">Conectado: cliente.teste@alsolucoes.com.br · Acesso Diretor Técnico</p>
           </div>
           <button onclick="fazerLogoutDrone()" class="px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold hover:bg-rose-500/30 transition">
             Sair do Portal
