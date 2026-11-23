@@ -250,6 +250,10 @@ button, input, select, a { touch-action: manipulation; }
         </div>
         <div>
           <div class="flex items-center gap-1.5">
+        <button onclick="openLoginModalDrone()" class="flex items-center gap-1.5 text-[11px] font-bold bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-2.5 py-1.5 rounded-lg active:scale-95 transition shadow-md shadow-cyan-500/20">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          <span id="txtBtnLoginDrone">Portal B2B / Login</span>
+        </button>
             <span class="font-extrabold text-base tracking-tight text-white">DRONE<span class="text-cyan-400">HUB</span></span>
             <span class="text-[9px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800 px-1.5 py-0.5 rounded uppercase">PAN-AM V6</span>
           </div>
@@ -280,6 +284,154 @@ button, input, select, a { touch-action: manipulation; }
 
   <!-- ================= CONTEÚDO PRINCIPAL (COM SCROLL) ================= -->
   <main id="mainScroll" class="flex-1 overflow-y-auto pb-28 px-3.5 pt-3">
+
+    <!-- ======================================================= -->
+    <!-- HERO B2B CORPORATIVO + SELOS ANAC / DECEA / RETA (Doc 110) -->
+    <!-- ======================================================= -->
+    <div class="space-y-4 mb-4">
+      <!-- HERO B2B (Fusão Horus + DroneDeploy + XMobots) -->
+      <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950/80 border border-cyan-500/40 p-4 sm:p-6 shadow-xl">
+        <div class="absolute -right-16 -top-16 w-60 h-60 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="space-y-3 relative z-10">
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-cyan-300 text-[10px] font-mono font-bold">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            OPERAÇÕES AÉREAS HOMOLOGADAS · RAIO 50 KM CANOAS &amp; POA
+          </div>
+
+          <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+            Engenharia Aérea B2B com <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-300">Conformidade Regulamentar Total</span>
+          </h2>
+
+          <p class="text-xs text-slate-300 leading-relaxed max-w-2xl">
+            Aerolevantamentos topográficos com precisão centimétrica, inspeções termográficas radiométricas e acompanhamento técnico de obras civis e industriais.
+          </p>
+
+          <!-- 3 Selos de Autoridade Aeronáutica -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            <div class="p-2.5 rounded-xl bg-slate-900/90 border border-cyan-500/20 flex items-center gap-2.5">
+              <span class="text-xl">🛡️</span>
+              <div>
+                <div class="text-[11px] font-bold text-white">ANAC SISANT</div>
+                <div class="text-[9px] text-cyan-300">Aeronaves 100% Homologadas</div>
+              </div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-900/90 border border-cyan-500/20 flex items-center gap-2.5">
+              <span class="text-xl">🛰️</span>
+              <div>
+                <div class="text-[11px] font-bold text-white">DECEA SARPAS</div>
+                <div class="text-[9px] text-cyan-300">Voo Aprovado pelo COMAER</div>
+              </div>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-900/90 border border-cyan-500/20 flex items-center gap-2.5">
+              <span class="text-xl">⚖️</span>
+              <div>
+                <div class="text-[11px] font-bold text-white">Seguro RETA Ativo</div>
+                <div class="text-[9px] text-cyan-300">Apólice Aeronáutica Obrigatória</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ÁREA RESTRITA B2B DO CLIENTE (Exibida dinamicamente após Login) -->
+      <div id="areaRestritaClienteDrone" class="hidden rounded-2xl bg-slate-950 border-2 border-cyan-400 p-4 sm:p-5 shadow-2xl space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-cyan-500/30">
+          <div>
+            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-mono">
+              <span>●</span> Sessão Corporativa B2B Ativa
+            </div>
+            <h3 class="text-base sm:text-lg font-bold text-white mt-1">Portal do Cliente B2B &amp; Downloads de Missões</h3>
+            <p id="userIdentidadeDrone" class="text-[10px] text-cyan-300 font-mono">Conectado: andre8166@hotmail.com · Acesso Diretor Técnico</p>
+          </div>
+          <button onclick="fazerLogoutDrone()" class="px-3 py-1.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-bold hover:bg-rose-500/30 transition">
+            Sair do Portal
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+            <div class="text-[9px] font-mono text-cyan-400 uppercase">MISSÃO #DRN-2026-44</div>
+            <div class="text-xs font-bold text-white">Ortomosaico &amp; Topografia Canoas</div>
+            <p class="text-[10px] text-slate-300">Área de 35 hectares. Resolução GSD 1.8 cm/px. Curvas de nível 0.5m.</p>
+            <div class="pt-1">
+              <button onclick="alert('Download do GeoTIFF e Nuvem LAS iniciado!')" class="w-full py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-bold hover:bg-cyan-500/30">
+                Baixar GeoTIFF / LAS (2.4 GB)
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+            <div class="text-[9px] font-mono text-cyan-400 uppercase">MISSÃO #DRN-2026-52</div>
+            <div class="text-xs font-bold text-white">Termografia Usina Solar POA</div>
+            <p class="text-[10px] text-slate-300">Inspeção infravermelha com Mavic 3 Thermal. 42 painéis com anomalia térmica.</p>
+            <div class="pt-1">
+              <button onclick="alert('Download do Laudo Radiométrico em PDF iniciado!')" class="w-full py-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-bold hover:bg-cyan-500/30">
+                Baixar Laudo Termográfico (PDF)
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5">
+            <div class="text-[9px] font-mono text-cyan-400 uppercase">AUTORIZAÇÃO DE VOO</div>
+            <div class="text-xs font-bold text-white">Protocolo SARPAS Aprovado</div>
+            <p class="text-[10px] text-slate-300">Protocolo COMAER nº SARP-2026-9912. Raio 1.500m até 120m AGL.</p>
+            <div class="pt-1">
+              <button onclick="alert('Certificado SARPAS COMAER exibido!')" class="w-full py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-bold hover:bg-emerald-500/30">
+                Ver Autorização DECEA
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GALERIA VISUAL B2B 'O QUE VOCÊ RECEBE' -->
+      <div class="rounded-2xl bg-slate-900/90 border border-cyan-500/20 p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[9px] font-mono font-bold text-cyan-400 uppercase tracking-wider">Entregáveis de Alta Precisão</span>
+            <h3 class="text-sm sm:text-base font-extrabold text-white">Galeria Visual: O Que Você Recebe</h3>
+          </div>
+          <span class="text-[10px] text-slate-400 font-mono">Padrão Horus &amp; DroneDeploy</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- Card 1: Ortomosaico -->
+          <div class="rounded-xl bg-slate-950 border border-slate-800 p-3 space-y-2">
+            <div class="h-28 rounded-lg bg-gradient-to-br from-emerald-950/60 to-cyan-950/60 border border-cyan-500/30 flex flex-col items-center justify-center p-3 text-center">
+              <span class="text-2xl">🗺️</span>
+              <span class="text-xs font-bold text-cyan-300 mt-1">Ortomosaico GSD &lt; 2cm</span>
+              <span class="text-[9px] text-slate-400">GeoTIFF, LAS e Curvas DWG</span>
+            </div>
+            <div class="text-xs font-bold text-white">1. Mapeamento Topográfico</div>
+            <p class="text-[10px] text-slate-300 leading-tight">Mosaico ortorretificado georreferenciado em coordenadas SIRGAS2000 UTM, pronto para cálculo de terraplenagem.</p>
+          </div>
+
+          <!-- Card 2: Termografia -->
+          <div class="rounded-xl bg-slate-950 border border-slate-800 p-3 space-y-2">
+            <div class="h-28 rounded-lg bg-gradient-to-br from-amber-950/60 to-rose-950/60 border border-rose-500/30 flex flex-col items-center justify-center p-3 text-center">
+              <span class="text-2xl">🔥</span>
+              <span class="text-xs font-bold text-rose-300 mt-1">Termografia Radiométrica</span>
+              <span class="text-[9px] text-slate-400">Hotspots, Infiltrações &amp; Painéis</span>
+            </div>
+            <div class="text-xs font-bold text-white">2. Inspeção Térmica &amp; Solar</div>
+            <p class="text-[10px] text-slate-300 leading-tight">Detecção milimétrica de células solares inoperantes, sobreaquecimento em cabines primárias e infiltrações em telhados.</p>
+          </div>
+
+          <!-- Card 3: Relatório de Obra -->
+          <div class="rounded-xl bg-slate-950 border border-slate-800 p-3 space-y-2">
+            <div class="h-28 rounded-lg bg-gradient-to-br from-blue-950/60 to-slate-900 border border-blue-500/30 flex flex-col items-center justify-center p-3 text-center">
+              <span class="text-2xl">📊</span>
+              <span class="text-xs font-bold text-blue-300 mt-1">Relatório Técnico PDF</span>
+              <span class="text-[9px] text-slate-400">Cubagem, Cronograma &amp; ART</span>
+            </div>
+            <div class="text-xs font-bold text-white">3. Relatório de Evolução de Obra</div>
+            <p class="text-[10px] text-slate-300 leading-tight">Dossiê executivo ilustrado com fotos 4K em ângulos repetíveis, volumetria de pilhas e comprovação para investidores.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
 
     <!-- ======================================================= -->
     <!-- ABA 1: EXPLORAR (MARKETPLACE DE PILOTOS)                 -->
@@ -3184,5 +3336,60 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 </script>
+
+  <!-- ======================================================= -->
+  <!-- MODAL DE LOGIN B2B (E-mail e Senha) — DroneHub Brasil   -->
+  <!-- ======================================================= -->
+  <div id="modalLoginDrone" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/85 backdrop-blur-md p-4">
+    <div class="w-full max-w-md rounded-2xl bg-slate-950 border-2 border-cyan-500/50 p-6 space-y-5 shadow-2xl relative">
+      <button onclick="closeLoginModalDrone()" class="absolute right-4 top-4 w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs font-bold">
+        ✕
+      </button>
+
+      <div class="space-y-1">
+        <div class="inline-flex items-center gap-1.5 text-[10px] font-mono text-cyan-400 font-bold uppercase">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          Portal Corporativo B2B
+        </div>
+        <h3 class="text-xl font-extrabold text-white">Login do Cliente B2B</h3>
+        <p class="text-xs text-slate-400">Acesse seus ortomosaicos, laudos periciais e autorizações DECEA SARPAS.</p>
+      </div>
+
+      <div id="loginFeedbackDrone" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+
+      <form id="formLoginDrone" onsubmit="realizarLoginDrone(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">E-mail Corporativo</label>
+          <input type="email" id="loginEmailDrone" required placeholder="diretoria@empresa.com.br" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-400" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">Senha de Acesso</label>
+          <input type="password" id="loginSenhaDrone" required placeholder="••••••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-cyan-400" />
+        </div>
+
+        <div class="flex items-center justify-between text-xs">
+          <label class="flex items-center gap-2 text-slate-400 cursor-pointer">
+            <input type="checkbox" id="chkLembrarDrone" class="rounded bg-slate-900 border-slate-700 text-cyan-500" />
+            <span class="text-[11px]">Lembrar sessão B2B</span>
+          </label>
+          <a href="https://wa.me/5551981668484?text=Ol%C3%A1!%20Esqueci%20minha%20senha%20do%20Portal%20B2B%20DroneHub." target="_blank" class="text-cyan-400 hover:underline text-[11px]">
+            Recuperar senha
+          </a>
+        </div>
+
+        <button type="submit" id="btnSubmitLoginDrone" class="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 transition">
+          <span>Entrar no Portal B2B</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
+      </form>
+
+      <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-[10px] text-slate-400 flex items-center gap-2">
+        <span>🔒</span>
+        <span>Acesso restrito a clientes corporativos. Dados criptografados no servidor.</span>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
