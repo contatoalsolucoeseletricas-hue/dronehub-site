@@ -1068,7 +1068,7 @@ button, input, select, a { touch-action: manipulation; }
       <!-- QR Code PIX e Chave Copia e Cola -->
       <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center space-y-2">
         <div class="inline-block p-2 bg-white rounded-xl shadow-md">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=00020126580014br.gov.bcb.pix0136dronehub-escrow-garantia-segura5204000053039865802BR" class="w-24 h-24" alt="QR Code PIX">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=00020126580014br.gov.bcb.pix0136dronehub-escrow-garantia-segura5204000053039865802BR" class="w-24 h-24" alt="QR Code PIX" loading="lazy" decoding="async">
         </div>
         <p class="text-[10px] text-slate-400">Escaneie com o app do seu banco ou use a chave abaixo:</p>
         <div class="flex gap-1.5">
@@ -1315,7 +1315,7 @@ button, input, select, a { touch-action: manipulation; }
       <!-- Cabeçalho do Modal -->
       <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
         <div class="flex items-center gap-2.5">
-          <img id="portPilotImg" src="" class="w-10 h-10 rounded-xl object-cover border border-cyan-400/50">
+          <img id="portPilotImg" src="" class="w-10 h-10 rounded-xl object-cover border border-cyan-400/50" loading="lazy" decoding="async">
           <div>
             <h3 class="text-xs font-bold text-white uppercase tracking-wider" id="portPilotName">Portfólio do Piloto</h3>
             <p class="text-[10px] text-cyan-400 font-mono" id="portPilotLocation">📍 Cidade - UF</p>
@@ -1341,7 +1341,7 @@ button, input, select, a { touch-action: manipulation; }
       <div id="portContent360" class="space-y-2.5">
         <div class="relative w-full aspect-video rounded-xl overflow-hidden border border-cyan-500/40 bg-slate-950 shadow-inner group">
           <img id="port360Image" src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1000&auto=format&fit=crop" 
-               class="w-full h-full object-cover transition-transform duration-700 ease-out" style="transform: scale(1.15) translateX(0px);">
+               class="w-full h-full object-cover transition-transform duration-700 ease-out" style="transform: scale(1.15) translateX(0px);" loading="lazy" decoding="async">
           
           <!-- Badge e Overlay 360° -->
           <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-lg border border-cyan-500/50 flex items-center gap-1.5 font-mono text-[10px] text-cyan-300 font-bold">
@@ -1365,7 +1365,7 @@ button, input, select, a { touch-action: manipulation; }
       <div id="portContentTimelapse" class="space-y-2.5 hidden">
         <div class="relative w-full aspect-video rounded-xl overflow-hidden border border-amber-500/40 bg-slate-950 shadow-inner">
           <img id="portTimelapseImg" src="https://images.unsplash.com/photo-1541888946425-d0fbb186156f?w=1000&auto=format&fit=crop" 
-               class="w-full h-full object-cover transition-opacity duration-300">
+               class="w-full h-full object-cover transition-opacity duration-300" loading="lazy" decoding="async">
 
           <div class="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md px-2.5 py-1 rounded-lg border border-amber-500/50 flex items-center gap-1.5 font-mono text-[10px] text-amber-300 font-bold">
             <span>⏱️ TIMELAPSE DE CONSTRUÇÃO</span>
@@ -1386,10 +1386,10 @@ button, input, select, a { touch-action: manipulation; }
       <!-- Conteúdo da Aba Fotos Aéreas -->
       <div id="portContentFotos" class="space-y-2.5 hidden">
         <div class="grid grid-cols-2 gap-2">
-          <img src="https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800">
-          <img src="https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800">
-          <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800">
-          <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800">
+          <img src="https://images.unsplash.com/photo-1508614589041-895b88991e3e?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800" loading="lazy" decoding="async">
+          <img src="https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800" loading="lazy" decoding="async">
+          <img src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800" loading="lazy" decoding="async">
+          <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&auto=format&fit=crop" class="w-full h-24 object-cover rounded-xl border border-slate-800" loading="lazy" decoding="async">
         </div>
         <p class="text-[11px] text-slate-300 leading-relaxed">
           Fotografias ortorretificadas, inspeções termográficas e imagens publicitárias em alta resolução captadas com sensores full-frame e lentes prime.
@@ -1652,7 +1652,7 @@ function renderPilots(data) {
   container.innerHTML = data.map(p => `
     <div class="card p-3.5 space-y-3">
       <div class="flex items-start gap-3">
-        <img src="${p.foto}" alt="${p.nome}" class="w-12 h-12 rounded-2xl object-cover border border-cyan-500/40 shadow-md">
+        <img src="${p.foto}" alt="${p.nome}" class="w-12 h-12 rounded-2xl object-cover border border-cyan-500/40 shadow-md" loading="lazy" decoding="async">
         <div class="flex-1 min-w-0">
           <div class="flex items-center justify-between">
             <h4 class="text-sm font-bold text-white truncate">${p.nome}</h4>
